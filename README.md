@@ -40,45 +40,6 @@ Der Algorithmus muss folgende Aufgaben erledigen:
 * Aufzeichnen der veränderten Parameter
 
 Der Verlauf der Parameter soll aufgezeichnet und gespeichert werden, um den Übergang in einer Web-Applikation abspielen und grafisch darstellen zu können.
- 
-
-
-### Schemata
-Dies sind die Übergangsszenarien, die ausgeführt werden können.
-
-##### Legende:
-* alter Song: A
-* neuer Song: B
-* H&M: High’s & Mid’s
-* Kick-Segment: Eine Zeitspanne des Tracks, indem auf jedem Beat eine Kick-Drum schlägt.
-* Bass-Swap: Die Low's im EQ werden zu einem bestimmten Zeitpunkt von 100% auf 0% verringert, respektive beim anderen Song vo 0% auf 100%.
-
-| Kürzel        | Beschreibung         |
-| :-------------:|-------------------- | 
-| A             | alter Song                                                                                                                    |
-| B             | neuer Song                                                                                                                    |
-| H&M           | High’s & Mid’s                                                                                                                |
-| Kick-Segment  | Eine Zeitspanne des Tracks, indem auf jedem Beat eine Kick-Drum schlägt.                                                      |
-| Bass-Swap     | Die Low's im EQ werden zu einem bestimmten Zeitpunkt von 100% auf 0% verringert, respektive beim anderen Song vo 0% auf 100%. | 
-
-#### Equalizer-Übergang:
-1. “Moritz-Übergang”: 
-    * B startet mit H&M direkt bei neuem Kick-Segment von A
-    * nach 2x32-Beat-Segmenten Bass Swap von A zu B
-    * A wird zu Ende gespielt oder langsam in der Lautstärke verringert. 
-2. “Oskar-Übergang”: 
-    * B startet bei Kick-Segment von A, H&M von B werden über 2x32-Beat-Segmente langsam hörbar (bis ~70%), H&M von A währenddessen auf ~75% reduziert
-    * Bass Swap von A zu B nach 2x32-Beat-Segmenten
-    * Im nächsten 32-Beat-Segment reduzieren sich H&M von A auf 30%, H&M von B erhöhen auf 100%, danach Volume von A auf 0
-3. 1 & 2 Variation (optional): 
-    * Bass Swap nahe Ende von A ausgeführt wird (Ende von konstanter Kick-Drum)
-    * H&M von B sollten zu dem Zeitpunkt schon bei 100% sein, A wird einfach zu Ende gespielt
-4. Parallele Breaks (vielleicht gut wenn A späten Break hat
-
-#### Crossfade-Übergang (wenn Zeit besteht, gut als Vergleich):
-5. Crossfade über 32-Beat-Segment
-6. Crossfade in parallelen Breaks/Buildups
-7. "klassischer" Crossfade (wahlloser Zeitpunkt am Ende des Tracks)
 
 
 
