@@ -1,0 +1,35 @@
+.DS_Store
+src/main/python/env
+.cache/
+target/
+!.mvn/wrapper/maven-wrapper.jar
+Pipfile*
+*.log
+*.csv
+*.timestamp
+.python-version
+
+### Python ###
+*.pyc
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
