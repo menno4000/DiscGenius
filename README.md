@@ -14,33 +14,6 @@ Nach der Analyse soll die Auswertung geschehen, in der für die verschiedenen Sz
 
 Unsere Gedanken & Notizen sind hier festgehalten: https://tinyurl.com/yy4fbkgz
 
-## Analyse (Max)
-
-Die Analyse muss die folgenden Aufgaben bewältigen:
-* BPM Ermittlung
-* Audiodatei in Frequenzspektrum wandeln, mithilfe der Fast-Fourier-Transformation (FFT)
-* Lautstärke des Songs bestimmen
-* Analyse von 4-Beat-Segmenten auf verschiedene Aspekte:
-    * Aktivität im Frequenzspektrum (High's, Mid's & Low's)
-    * Vorhandensein durchgängiger Kick Drum -> dadurch können Breaks identifiziert werden & Beatmatching ist möglich
-* zusammengehörige 4-Beat-Segmente zusammenfassen, um längere Segmente zu kreieren (optimalerweise 64-Beat-Segmente/16 Takte) 
-* Generieren eines 'Transition-Scores' pro Segment. (Dieser berücksichtigt Aspekte, wie: Kick-Drum, Aktivität im Frequenzspektrum, Zeitpunkt im Track etc.)
- 
-
-## Evaluation & Anwendung (Oskar)
-
-In diesem Part sollen die zwei analysierten Tracks ausgewertet werden. Um die Schemata sinnvoll anzuwenden, wird der Transition-Score der einzelnen Segmente benutzt.
-Durch die "klassichen Instrumente" eines Mixers (3-Band-EQ, Volume- & Crossfader) soll der Übergang ausgeführt werden und die Audiodateien miteinander verschmolzen werden.
-
-Der Algorithmus muss folgende Aufgaben erledigen:
-* BPM-Sync
-* Beatmatching
-* "Segment-Sync"
-* Bedienen der Elemente eines Mixers
-* Aufzeichnen der veränderten Parameter
-
-Der Verlauf der Parameter soll aufgezeichnet und gespeichert werden, um den Übergang in einer Web-Applikation abspielen und grafisch darstellen zu können.
-
 
 
 
