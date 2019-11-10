@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # this script will execute a transition between two given songs, using the data provided by the analysis script
+# the input files should already have the same bpm values, the analysis class should handle that beforehand
 # wav files will be read & written with the librosa module
 # for manipulating the sound every frame has to be edited
 # the frames will usually be loaded into a two dimensional array (2,n), containing two lists of frames per channel (stereo)
@@ -11,16 +12,27 @@
 __author__ = "Oskar Sailer"
 
 import os
+import time
+import sys
 
 import librosa
 import numpy as np
-import sound_manipulation
+import matplotlib.pyplot as plt
+import sound_manipulation as sm
 
 # 2 bytes pro kanal, 2 kanäle, da stereo --> 4 bytes pro frame
 # np.column_stack um zwei channel-listen in tupel zu verwandeln
 # variables will be imported from csv file, provided by analysis
 
 SAMPLE_RATE = 44100
+
+# vff = volume fading factor
+VFF_1 = 0.8
+VFF_2 = 0.55
+
+# TSL = Transition Segment Length
+TSL_1 = 32
+TSL_2 = 32
 
 
 def get_length_out_of_frames(amount_of_frames, samplerate=SAMPLE_RATE):
@@ -48,13 +60,19 @@ def log_info_about_mix(song_a, song_b, transition_points, frames):
     print("In frames:")
     print("Song A:       .....%s.....%s.....%s.....%s....." % (
     frames['until_c'], frames['between_c_and_d'], frames['between_d_and_e'], rest_frames_song_a))
-    print("Sng B:         .....%s.....%s.....%s.....%s....." % (
+    print("Song B:         .....%s.....%s.....%s.....%s....." % (
     frames['until_a'], frames['between_c_and_d'], frames['between_d_and_e'], rest_frames_song_b))
     print("Total:     ............................%s......................................" % (
             frames['until_c'] + frames['between_c_and_d'] + frames['between_d_and_e'] + rest_frames_song_b))
     print(
         "------------------------------------------------------------------------------------------------------------------------")
     print()
+
+
+def plot_audio_channel(audio_channel):
+    plt.plot(audio_channel)
+    plt.ylabel('audio channel')
+    plt.show()
 
 
 def calculate_frames(song_a, song_b, transition_points):
@@ -70,7 +88,6 @@ def calculate_frames(song_a, song_b, transition_points):
         'between_c_and_d': int(round((transition_points['d'] - transition_points['c']) * SAMPLE_RATE)),
         'between_d_and_e': int(round((transition_points['e'] - transition_points['d']) * SAMPLE_RATE))
     }
-    print("Frames: %s" % frames)
     return frames
 
 
@@ -89,13 +106,13 @@ def read_wav_file(filepath, duration=None):
     song['total_frames'] = len(song['frames'][0])
     song['length'] = get_length_out_of_frames(song['total_frames'])
 
-    print("INFO - Parameters: Framerate '%s', Total Frames '%s', Length '%s'\n" % (
+    print("INFO - Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
         song['frame_rate'], song['total_frames'], song['length']))
     return song
 
 
 def save_wav_file(list_of_frames, path, samplerate=SAMPLE_RATE):
-    # todo: filesize doubled?! mono/stereo? bit depth?
+    # todo: filesize doubled because bits per sample doubled
     # write with soundfile? https://github.com/bastibe/SoundFile/issues/203, format wrong: (channels x frames) --> (channels, frames)
     #
     print("INFO - Saving resulting audiofile to '%s'" % path)
@@ -105,84 +122,121 @@ def save_wav_file(list_of_frames, path, samplerate=SAMPLE_RATE):
     # scipy.io.wavfile.write(path, samplerate, list_of_frames)
 
 
+def modify_transition_segment_1(frame_array_a, frame_array_b):
+    # use Song A with full eq, set volume to 80%
+    a_left_transition_channel = sm.edit_volume_by_factor(frame_array_a[0], VFF_1)
+    a_right_transition_channel = sm.edit_volume_by_factor(frame_array_a[1], VFF_1)
+
+    # cut bass from last bar from Song A for smoother transition
+    a_left_transition_channel = sm.cut_bass_for_last_bar(a_left_transition_channel, TSL_1)
+    a_right_transition_channel = sm.cut_bass_for_last_bar(a_right_transition_channel, TSL_1)
+
+    # set volume to 55%, cut bass from song B
+    b_left_transition_channel = sm.low_cut_filter(sm.edit_volume_by_factor(frame_array_b[0], VFF_2), order=3)
+    b_right_transition_channel = sm.low_cut_filter(sm.edit_volume_by_factor(frame_array_b[1], VFF_2), order=3)
+
+    print("INFO -       Combining Frames of Song A & B for Transition Segment C--D")
+    transition_segment_1 = [[], []]
+    for i in range(len(a_left_transition_channel)):
+        transition_segment_1[0].append(a_left_transition_channel[i] + b_left_transition_channel[i])
+        transition_segment_1[1].append(a_right_transition_channel[i] + b_right_transition_channel[i])
+
+    # reduce amplitude to avoid clipping in transition segment
+    transition_segment_1 = np.array(transition_segment_1)
+    #transition_segment_1[0] = sm.reduce_amplitude(transition_segment_1[0])
+    #transition_segment_1[1] = sm.reduce_amplitude(transition_segment_1[1])
+    return transition_segment_1
+
+
+def modify_transition_segment_2(frame_array_a, frame_array_b):
+    # set volume to 60%, cut bass from Song A & add to channel arrays
+    a_left_transition_channel = sm.low_cut_filter(sm.edit_volume_by_factor(frame_array_a[0], VFF_2), order=3)
+    a_right_transition_channel = sm.low_cut_filter(sm.edit_volume_by_factor(frame_array_a[1], VFF_2), order=3)
+
+    # set volume to 90%, use Song B with full eq
+    b_left_transition_channel = sm.edit_volume_by_factor(frame_array_b[0], VFF_1)
+    b_right_transition_channel = sm.edit_volume_by_factor(frame_array_b[1], VFF_1)
+
+    # cut bass from last bar from Song B for smoother transition
+    b_left_transition_channel = sm.cut_bass_for_last_bar(b_left_transition_channel, TSL_2)
+    b_right_transition_channel = sm.cut_bass_for_last_bar(b_right_transition_channel, TSL_2)
+
+    print("INFO -       Combining Frames of Song A & B for Transition Segment D--E")
+    transition_segment_2 = [[], []]
+    for i in range(len(a_left_transition_channel)):
+        left_value = a_left_transition_channel[i] + b_left_transition_channel[i]
+        right_value = a_right_transition_channel[i] + b_right_transition_channel[i]
+        transition_segment_2[0].append(left_value)
+        transition_segment_2[1].append(right_value)
+
+    # reduce amplitude to avoid clipping in transition segment
+    transition_segment_2 = np.array(transition_segment_2)
+    #transition_segment_2[0] = sm.reduce_amplitude(transition_segment_2[0])
+    #transition_segment_2[1] = sm.reduce_amplitude(transition_segment_2[1])
+
+    return transition_segment_2
+
+
 # this method will combine the frames of song a & b in two separate time segments (C -- D & D -- E)
 def mix_transition_segments(song_a, song_b, transition_points, frames):
-    a_placeholder = [[], []]
-    b_placeholder = [[], []]
+    segment_channel_a = [[], []]
+    segment_channel_b = [[], []]
 
-    print("INFO - Calculating Transition Segment: C -- D")
+    print("INFO -   Calculating Transition Segment: C -- D, Length in bars: '%s'" % TSL_1)
     for i in range(frames['between_c_and_d']):
         frame_for_a = frames['until_c'] + i
         frame_for_b = frames['until_a'] + i
-        a_placeholder[0].append(song_a['left_channel'][frame_for_a])
-        a_placeholder[1].append(song_a['right_channel'][frame_for_a])
+        segment_channel_a[0].append(song_a['left_channel'][frame_for_a])
+        segment_channel_a[1].append(song_a['right_channel'][frame_for_a])
 
-        b_placeholder[0].append(song_b['left_channel'][frame_for_b])
-        b_placeholder[1].append(song_b['right_channel'][frame_for_b])
+        segment_channel_b[0].append(song_b['left_channel'][frame_for_b])
+        segment_channel_b[1].append(song_b['right_channel'][frame_for_b])
 
-    # use Song A with full eq
-    a_left_transition_channel = np.array(a_placeholder[0], dtype='float32')
-    a_right_transition_channel = np.array(a_placeholder[1], dtype='float32')
-    # cut bass from song B
-    b_left_transition_channel = sound_manipulation.low_cut_filter(b_placeholder[0], order=3)
-    b_right_transition_channel = sound_manipulation.low_cut_filter(b_placeholder[1], order=3)
+    transition_segment_1 = modify_transition_segment_1(segment_channel_a, segment_channel_b)
 
     # reset
-    a_placeholder = [[], []]
-    b_placeholder = [[], []]
+    segment_channel_a = [[], []]
+    segment_channel_b = [[], []]
 
-    print("INFO - Calculating Transition Segment: D -- E")
+    print("INFO -   Calculating Transition Segment: D -- E, Length in bars: '%s'" % TSL_2)
     for i in range(frames['between_d_and_e']):
         frame_for_a = frames['until_d'] + i
         frame_for_b = frames['until_b'] + i
-        a_placeholder[0].append(song_a['left_channel'][frame_for_a])
-        a_placeholder[1].append(song_a['right_channel'][frame_for_a])
+        segment_channel_a[0].append(song_a['left_channel'][frame_for_a])
+        segment_channel_a[1].append(song_a['right_channel'][frame_for_a])
 
-        b_placeholder[0].append(song_b['left_channel'][frame_for_b])
-        b_placeholder[1].append(song_b['right_channel'][frame_for_b])
+        segment_channel_b[0].append(song_b['left_channel'][frame_for_b])
+        segment_channel_b[1].append(song_b['right_channel'][frame_for_b])
 
-    # cut bass from Song A & add to channel arrays
-    a_left_transition_channel = np.append(a_left_transition_channel,
-                                          sound_manipulation.low_cut_filter(a_placeholder[0], order=3))
-    a_right_transition_channel = np.append(a_right_transition_channel,
-                                           sound_manipulation.low_cut_filter(a_placeholder[1], order=3))
-    # use Song B with full eq & add to channel arrays
-    b_left_transition_channel = np.append(b_left_transition_channel, b_placeholder[0])
-    b_right_transition_channel = np.append(b_right_transition_channel, b_placeholder[1])
+    transition_segment_2 = modify_transition_segment_2(segment_channel_a, segment_channel_b)
 
-    # combine frames of song a & b
-    print("INFO - Adding transition frames to mix. ")
-    mix_left_transition_channel = []
-    mix_right_transition_channel = []
-    for i in range(0, len(a_left_transition_channel)):
-        mix_left_transition_channel.append(a_left_transition_channel[i] + b_left_transition_channel[i])
-        mix_right_transition_channel.append(a_right_transition_channel[i] + b_right_transition_channel[i])
+    print("INFO - Adding transition segments 1 & 2 to mix.")
+    transition_segment_left = np.append(np.asarray(transition_segment_1[0]), np.asarray(transition_segment_2[0]))
+    transition_segment_right = np.append(np.asarray(transition_segment_1[1]), np.asarray(transition_segment_2[1]))
 
-    return mix_left_transition_channel, mix_right_transition_channel
+    return transition_segment_left, transition_segment_right
 
 
 def create_mixed_wav_file(song_a, song_b, transition_points, paths, frames):
     log_info_about_mix(song_a, song_b, transition_points, frames)
     print("INFO - Keep calm... Mixing both audiofiles.")
 
-    # todo: compare params of songs (nchannels, sampwidth & framerate should be same)
-
     if not song_a['frame_rate'] == 44100 and not song_b['frame_rate'] == 44100:
-        # todo convert
-        print("ERROR - Skipping mixing because sample rate is not default 44100.")
-        return
+        print("ERROR - Skipping mixing because sample rate is not 44.100Hz for both songs.")
+        sys.exit()
 
     print("INFO - Adding unmodified frames of song A to mix. Length: '%0.2f's" % transition_points['c'])
-    # reading song a  just until point C and get all frames for both channels
+    # reading song a just until point C and get all frames for both channels
     song_x = librosa.core.load(song_a['path'], sr=SAMPLE_RATE, mono=False, duration=transition_points['c'])
     left_mix_channel = song_x[0][0]
     right_mix_channel = song_x[0][1]
 
-    print("INFO - Creating transition section between A & B. Length: '%0.2f's" % (
+    print("INFO - Creating transition segments between A & B. Length: '%0.2f's" % (
                 transition_points['e'] - transition_points['c']))
-    left_transition, right_transition = mix_transition_segments(song_a, song_b, transition_points, frames)
-    left_mix_channel = np.append(left_mix_channel, np.asarray(left_transition))
-    right_mix_channel = np.append(right_mix_channel, np.asarray(right_transition))
+    transition_segment_left, transition_segment_right = mix_transition_segments(song_a, song_b, transition_points, frames)
+    left_mix_channel = np.append(left_mix_channel, transition_segment_left)
+    right_mix_channel = np.append(right_mix_channel, transition_segment_right)
+    del transition_segment_left, transition_segment_right
 
     print("INFO - Adding unmodified frames of song B to mix. Length: '%0.2f's" % (
             song_b['total_frames'] / SAMPLE_RATE - transition_points['x']))
@@ -193,8 +247,8 @@ def create_mixed_wav_file(song_a, song_b, transition_points, paths, frames):
         current_mix[0].append(song_b['left_channel'][i])
         current_mix[1].append(song_b['right_channel'][i])
 
-    left_mix_channel = np.append(left_mix_channel, np.asarray(current_mix[0]))
-    right_mix_channel = np.append(right_mix_channel, np.asarray(current_mix[1]))
+    left_mix_channel = np.append(left_mix_channel, np.asarray(current_mix[0], dtype='float32'))
+    right_mix_channel = np.append(right_mix_channel, np.asarray(current_mix[1], dtype='float32'))
 
     if os.path.exists(paths['result_path']):
         print("INFO - Removing old file...")
@@ -202,36 +256,44 @@ def create_mixed_wav_file(song_a, song_b, transition_points, paths, frames):
 
     print("INFO - Creation of a mix finished. Amount of frames: '%s', Length: '%sm'" % (
         len(left_mix_channel), get_length_out_of_frames(len(left_mix_channel))))
-    stereo_mix = np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
-    save_wav_file(stereo_mix, paths['result_path'])
+    return np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
 
 
 if __name__ == '__main__':
-    paths = {'song_a_path': "../AudioExampleFiles/Umek - Vibrancy (Original Mix).wav",
-             'song_b_path': "../AudioExampleFiles/Umek - Brethren (Original Mix).wav",
-             'result_path': "../AudioExampleFiles/Mixes/result.wav"}
-
-    # vibrancy to brethren
+    # --- onium to shorebreak --- C-D-E: 4:02-5:02-6:02 --- 32-32
     transition_points = {
-        'a': 0.128,
-        'c': 240 + 48 + 0.875,
-        'd': 360 + 18 + 0.875,
-        'e': 360 + 48 + 0.875
+        'a': 0.85,
+        'c': 240 + 1 + 0.9,
+        'd': 300 + 2 + 0.3,
+        'e': 360 + 2 + 0.8
     }
     transition_points['b'] = transition_points['a'] + (transition_points['d'] - transition_points['c'])
     transition_points['x'] = transition_points['a'] + (transition_points['e'] - transition_points['c'])
-    print("Transition Points: %s" % transition_points)
+    paths = {'song_a_path': "../AudioExampleFiles/Sisko Electrofanatik - Onium (Original Mix).wav",
+             'song_b_path': "../AudioExampleFiles/Hell Driver - Shorebreak (Original Mix).wav",
+             'result_path': "../AudioExampleFiles/Mixes/" + "onium_to_shorebreak_" + str(transition_points['a']) + ".wav"
+             }
 
     song_a = read_wav_file(paths['song_a_path'])
     song_b = read_wav_file(paths['song_b_path'])
     frames = calculate_frames(song_a, song_b, transition_points)
 
-    create_mixed_wav_file(song_a, song_b, transition_points, paths, frames)
+    print("Frames: %s" % frames)
+    print("Transition Points: %s" % transition_points)
 
-    # andromeda to 86
-    # song_A_path = "../AudioExampleFiles/Dok & Martin - Andromeda (Original Mix).wav"
-    # song_B_path = "../AudioExampleFiles/Hell Driver - 86 (Original Mix).wav"
-    # a = 15.075
-    # c = 324.9
-    # d = 384
-    # e = 443.1
+
+    #song_abc = read_wav_file(paths['song_a_path'], 120)
+    #cutted_volume_song = sound_manipulation.edit_volume_by_factor(song_abc['frames'], 0.5)
+    #plt.plot(cutted_volume_song[0])
+
+
+    #save_wav_file(cutted_volume_song, paths['result_path'])
+
+    then = time.time()
+    mixed_song = create_mixed_wav_file(song_a, song_b, transition_points, paths, frames)
+    save_wav_file(mixed_song, paths['result_path'])
+    now = time.time()
+    print("INFO - Mixing file took: %0.1f seconds" % (now-then))
+
+
+
