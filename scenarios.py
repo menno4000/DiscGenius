@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# scenarios.py contains different transition scenarios and has two methods per scenario
+# it will manipulate the frame_arrays using methods from the 'sound_manipulation' script
+
+__author__ = "Oskar Sailer"
+
 import numpy as np
 import sound_manipulation as sm
 

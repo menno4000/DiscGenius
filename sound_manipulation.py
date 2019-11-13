@@ -1,10 +1,10 @@
 import math
 
-import evaluator
 import numpy as np
 import scipy as sp
 from scipy.signal import butter, lfilter
 
+SAMPLE_RATE = 44100
 
 ################################################################ filter types ################################################################
 
@@ -13,7 +13,7 @@ def high_cut_filter(data, order=5):
     type = 'low'
     cutoff = 2000
 
-    nyq = 0.5 * evaluator.SAMPLE_RATE
+    nyq = 0.5 * SAMPLE_RATE
     normal_cutoff = cutoff / nyq
     b, a = butter(order, normal_cutoff, btype=type, analog=False)
     frames = lfilter(b, a, data)
@@ -24,7 +24,7 @@ def low_cut_filter(data, order=5):
     type = 'high'
     cutoff = 200
 
-    nyq = 0.5 * evaluator.SAMPLE_RATE
+    nyq = 0.5 * SAMPLE_RATE
     normal_cutoff = cutoff / nyq
     # normal_cutoff = 0.009
     b, a = butter(order, normal_cutoff, btype=type, analog=False)
@@ -45,7 +45,7 @@ def high_shelf_filter(frame_array, gain, freq_cut=2000):
     frequency_cutoff = freq_cut
     volume_gain = gain
 
-    K = math.tan(math.pi * frequency_cutoff / evaluator.SAMPLE_RATE)
+    K = math.tan(math.pi * frequency_cutoff / SAMPLE_RATE)
     G = 10 ** (volume_gain / 20)
 
     # calculating parameters
@@ -70,7 +70,7 @@ def low_shelf_filter(frame_array, gain, freq_cut=200):
     frequency_cutoff = freq_cut
     volume_gain = gain
 
-    K = math.tan(math.pi * frequency_cutoff / evaluator.SAMPLE_RATE)
+    K = math.tan(math.pi * frequency_cutoff / SAMPLE_RATE)
     G = 10 ** (volume_gain / 20)
 
     # calculating parameters
@@ -108,7 +108,7 @@ def peak_filter(frame_array, gain):
     volume_gain = gain
     Q = 10
 
-    K_p = math.tan(math.pi * cutoff_frequency / evaluator.SAMPLE_RATE)
+    K_p = math.tan(math.pi * cutoff_frequency / SAMPLE_RATE)
     G_p = 10 ** (volume_gain / 20)
 
     b0 = (1 + (G_p / Q) * K_p + K_p ** 2) / (1 + (1 / Q) * K_p + K_p ** 2)
