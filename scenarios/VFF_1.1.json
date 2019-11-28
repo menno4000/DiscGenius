@@ -1,0 +1,7 @@
+{
+	"full_name": "volume fading transition with bass swap and 1 bar bass cut",
+	"vff": [0.8, 0.7, 0.6, 0.5],
+	"features": {
+		"1bar_bass_cut": true
+	}
+}

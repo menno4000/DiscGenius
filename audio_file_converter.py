@@ -15,8 +15,13 @@ def convert_mp3_to_wav(input_path, output_path):
     os.system(cmd)
 
 
-def convert_result_to_mp3(result_path, bitrate):
+def convert_result_to_mp3(config, mix_name):
     print("INFO - Converting wav to mp3...")
-    mp3_path = f"{result_path[:-4]}.mp3"
-    convert_wav_to_mp3(result_path, mp3_path, bitrate)
-    print("INFO - File was converted and is located at '%s'" % mp3_path)
+    if '.wav' in mix_name:
+        mix_mp3 = f"{mix_name[:-4]}.mp3"
+        wav_path = f"{config['mix_path']}/{mix_name}"
+        mp3_path = f"{config['mix_path']}/{mix_mp3}"
+        convert_wav_to_mp3(wav_path, mp3_path, config['mp3_bitrate'])
+        print("INFO - File was converted and is located at '%s'" % mp3_path)
+        return mix_mp3
+    return

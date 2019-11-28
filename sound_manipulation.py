@@ -171,4 +171,6 @@ def cut_bass_for_last_bar(list_of_frames, length_of_segment):
 
 
 def modify_mids_and_highs_by_gain(frame_array, gain):
+    if gain == 0:
+        return frame_array
     return mid_shelf_filter(high_shelf_filter(frame_array, gain), gain)

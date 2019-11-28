@@ -11,6 +11,7 @@ Pipfile*
 
 ### Python ###
 *.pyc
+__pycache__/
 
 ### STS ###
 .apt_generated
@@ -33,3 +34,6 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+
+### project based ###
+audio/

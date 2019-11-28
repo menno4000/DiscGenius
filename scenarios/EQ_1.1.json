@@ -1,0 +1,8 @@
+{
+	"full_name": "smooth 3-band-EQ transition with bass swap and 1 bar bass cut",
+	"EQGF_A": [-0.5, -1, -1.7, -2.8, -3.5, -5.5, -7.5, -9.5],
+	"EQGF_B": [-20, -16, -10, -7.5, -5.5, -4, -2.6, -1],
+	"features": {
+		"1bar_bass_cut": true
+	}
+}
