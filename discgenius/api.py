@@ -1,11 +1,12 @@
 import os
 from os.path import isfile, join
 
-from . import controller
-from .utility import utility as util
 from fastapi import FastAPI, HTTPException, Body
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
+
+from . import controller
+from .utility import utility as util
 
 app = FastAPI()
 
@@ -42,7 +43,8 @@ def save_song(config, filename, song_data):
 
 
 @app.post("/mix")
-async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""), mix_name: str = Body(default=""),
+async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
+              mix_name: str = Body(default=""),
               scenario_name: str = Body(default="")):
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(400, "Please provide three attributes: 'song_a_name', 'song_b_name' and 'transition_scenario'.")
@@ -73,11 +75,11 @@ async def upload_song(filename: str, extension: str, request: Request):
 
 
 @app.get("/getMix")
-async def get_mix(name_of_mix: str = ""):
-    if name_of_mix == "":
+async def get_mix(name: str = ""):
+    if name == "":
         raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
 
-    mix_path = f"{config['mix_path']}/{name_of_mix}"
+    mix_path = f"{config['mix_path']}/{name}"
     if not os.path.isfile(mix_path):
         raise HTTPException(status_code=404, detail="Mix not found. Please check under GET '/mixes' which mixes exist.")
 

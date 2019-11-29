@@ -7,6 +7,7 @@
 __author__ = "Oskar Sailer"
 
 import numpy as np
+
 from .utility import sound_manipulation as sm
 
 # vff = volume fading factor
@@ -17,8 +18,8 @@ VFF_LIST = [0.8, 0.7, 0.6, 0.5]
 EQGF_LIST = [-2, -3.5, -7, -10]
 
 # smooth
-EQGF_A_LIST_8_STEPS = [-0.5,    -1,     -1.7,   -2.8,   -3.5,   -5.5,   -7.5,   -9.5]
-EQGF_B_LIST_8_STEPS = [-20,     -16,    -10,    -7.5,   -5.5,   -4,     -2.6,   -1]
+EQGF_A_LIST_8_STEPS = [-0.5, -1, -1.7, -2.8, -3.5, -5.5, -7.5, -9.5]
+EQGF_B_LIST_8_STEPS = [-20, -16, -10, -7.5, -5.5, -4, -2.6, -1]
 
 
 def chunks(l, n):
@@ -223,4 +224,3 @@ def transition_scenario_2_segment_2_dynamic(frame_array_a, frame_array_b, tsl_2)
 
 def low_cut_segment(frame_array):
     return sm.low_shelf_filter(frame_array, -26)
-

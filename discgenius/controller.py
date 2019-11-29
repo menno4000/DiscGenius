@@ -1,10 +1,10 @@
 import os
 import time
 
-from .utility import utility as util
 from . import evaluator
 from . import mixer
-from . import audio_file_converter as converter
+from .utility import audio_file_converter as converter
+from .utility import utility as util
 
 
 def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name):

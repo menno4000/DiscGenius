@@ -1,4 +1,3 @@
-from DiscGenius.discgenius import evaluator
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
@@ -28,8 +27,8 @@ def plot_filter(b, a, name):
     plt.show()
 
 
-def plot_audio_channel(audio_channel, name):
-    time_axis = np.linspace(0, len(audio_channel) / evaluator.SAMPLE_RATE / 60, num=len(audio_channel))
+def plot_audio_channel(config, audio_channel, name):
+    time_axis = np.linspace(0, len(audio_channel) / config['sample_rate'] / 60, num=len(audio_channel))
     plt.figure()
     plt.plot(time_axis, audio_channel, color="blue")
     plt.ylabel('Audio Channel')

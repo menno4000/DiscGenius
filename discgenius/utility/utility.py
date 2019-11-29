@@ -237,10 +237,12 @@ def get_config(content_path):
         'sample_rate': get_int_parameter(parser, section, 'sample_rate'),
         'mp3_bitrate': get_int_parameter(parser, section, 'mp3_bitrate'),
         'stereo': get_boolean_parameter(parser, section, 'stereo'),
+
         'data_path': get_string_parameter(parser, section, 'data_path'),
         'song_path': get_string_parameter(parser, section, 'song_path'),
         'mix_path': get_string_parameter(parser, section, 'mix_path'),
         'scenario_path': get_string_parameter(parser, section, 'scenario_path'),
+        'ffmpeg_path': get_string_parameter(parser, section, 'ffmpeg_path'),
 
         'audio_formats': AUDIO_FILE_FORMATS,
     }
