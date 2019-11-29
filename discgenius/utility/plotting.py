@@ -1,4 +1,4 @@
-from domain import evaluator
+from DiscGenius.discgenius import evaluator
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal

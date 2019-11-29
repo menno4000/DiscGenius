@@ -5,7 +5,6 @@
 # wav files will be read & written with the librosa module
 
 import configparser
-import datetime
 import json
 import sys
 import os
@@ -172,8 +171,8 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
     return json_data
 
 
-def get_parser():
-    parser_file_list = ['content.ini']
+def get_parser(content_path):
+    parser_file_list = [content_path]
     parser = configparser.ConfigParser()
     file_list = parser.read(parser_file_list)
     if len(file_list) == 0:
@@ -231,8 +230,8 @@ def get_scenarios(config, just_names=True):
     return scenarios
 
 
-def get_config():
-    parser = get_parser()
+def get_config(content_path):
+    parser = get_parser(content_path)
     section = "DEFAULT"
     config = {
         'sample_rate': get_int_parameter(parser, section, 'sample_rate'),

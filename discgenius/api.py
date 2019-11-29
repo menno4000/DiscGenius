@@ -1,15 +1,15 @@
 import os
 from os.path import isfile, join
 
-import controller
-import utility as util
+from . import controller
+from .utility import utility as util
 from fastapi import FastAPI, HTTPException, Body
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
 
 app = FastAPI()
 
-config = util.get_config()
+config = util.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
 
 

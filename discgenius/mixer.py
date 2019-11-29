@@ -16,8 +16,8 @@ import sys
 
 import librosa
 import numpy as np
-import scenarios
-import utility as util
+from . import scenarios
+from .utility import utility as util
 
 TSL_LIST = []
 

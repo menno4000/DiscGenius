@@ -7,7 +7,7 @@
 __author__ = "Oskar Sailer"
 
 import numpy as np
-import sound_manipulation as sm
+from .utility import sound_manipulation as sm
 
 # vff = volume fading factor
 VFF_LIST = [0.8, 0.7, 0.6, 0.5]
