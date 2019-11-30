@@ -15,6 +15,24 @@ Nach der Analyse soll die Auswertung geschehen, in der für die verschiedenen Sz
 Unsere Gedanken & Notizen sind hier festgehalten: https://tinyurl.com/yy4fbkgz
 
 
+## Setup
+
+You will need python3 and pip. After that you can start the application with running the script ```./run_api.sh```.
+
+It should automatically install the required python modules. After that the app is available under ```localhost:9001```.
+The app provides the following API's:
+
+```
+GET /songs       -   See all available songs on the server which you can use to create a mix
+GET /mixes       -   See all available mixes on the server which you can download.
+GET /scenarios   -   See all available scenarios that you can chose from to create a mix.
+
+POST /upload     -   Upload a song to the server. Required query parameters: 'filename' & 'extension'
+POST /createMix  -   Start the process of analysing and mixing two given songs. Required body parameters: 'song_a_name', 'song_b_name', 'scenario_name'. Optional parameters: 'mix_name'.
+
+GET /getMix      -   Download a created mix. Required query param: 'name'.
+```
+
 
 
 

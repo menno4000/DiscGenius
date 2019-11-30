@@ -14,25 +14,6 @@ config = util.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
 
 
-def generate_safe_filename(filename, extension):
-    # generate safe file ending
-    ending = ""
-    if len(filename) <= 4:
-        filename = f"{filename}.{extension}"
-    else:
-        ending = filename.split('.')[-1]
-    if not ending == extension:
-        filename = f"{filename}.{extension}"
-
-    # check if file exists
-    filename_without_extension = filename[:-(len(extension) + 1)]
-    i = 1
-    while os.path.isfile(f"{config['song_path']}/{filename}"):
-        filename = f"{filename_without_extension}-{i}.{extension}"
-        i += 1
-    return filename
-
-
 def raise_exception(status_code, detail):
     raise HTTPException(status_code=status_code, detail=detail)
 
@@ -42,7 +23,32 @@ def save_song(config, filename, song_data):
         f.write(song_data)
 
 
-@app.post("/mix")
+@app.post("/upload")
+async def upload_song(filename: str, extension: str, request: Request):
+    body = await request.body()
+    if not body:
+        raise_exception(400, "Please provide an audio file in the body.")
+
+    if extension not in config['audio_formats']:
+        raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config['audio_formats'])
+
+    filename = controller.generate_safe_filename(config, filename, extension)
+    save_song(config, filename, body)
+
+    if not extension == "wav":
+        controller.create_wav_from_mp3(config, filename, extension)
+        filename = filename[:-(len(extension))] + "wav"
+        return {
+            "filename": filename,
+            "info": "'.wav file' was created. Please refer to this file when calling /mix."
+        }
+    return {
+        "filename": filename,
+        "info": "Please refer to this name, when calling '/mix'"
+    }
+
+
+@app.post("/createMix")
 async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
               mix_name: str = Body(default=""),
               scenario_name: str = Body(default="")):
@@ -58,20 +64,6 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
         raise_exception(400, "Transition scenario could not be found.")
 
     return controller.mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name)
-
-
-@app.post("/upload")
-async def upload_song(filename: str, extension: str, request: Request):
-    body = await request.body()
-    filename = generate_safe_filename(filename, extension)
-
-    save_song(config, filename, body)
-
-    # todo if mp3 start thread to convert file to wav
-    return {
-        "filename": filename,
-        "info": "Please refer to this name, when calling '/mix'"
-    }
 
 
 @app.get("/getMix")

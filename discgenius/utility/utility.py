@@ -12,7 +12,7 @@ from os.path import isfile, join
 
 import librosa
 
-AUDIO_FILE_FORMATS = ['.wav', '.mp3']
+AUDIO_FILE_FORMATS = ['wav', 'mp3']
 KEYS_TO_REMOVE = ['frames', 'left_channel', 'right_channel', 'identifier']
 
 
