@@ -18,6 +18,7 @@ Unsere Gedanken & Notizen sind hier festgehalten: https://tinyurl.com/yy4fbkgz
 ## Setup
 
 You will need python3 and pip. After that you can start the application with running the script ```./run_api.sh```.
+For audio file conversion you will need 'ffmpeg' (which is already included in the repo, ```https://ffmpeg.org/```) and 'LAME' which can be downloaded here ```http://lame.sourceforge.net/```.
 
 It should automatically install the required python modules. After that the app is available under ```localhost:9001```.
 The app provides the following API's:

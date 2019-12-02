@@ -1,0 +1,7 @@
+{
+	"short_name": "EQ_2.0",
+	"full_name": "'hard' transition with bass swap",
+	"features": {
+		"1bar_bass_cut": false
+	}
+}

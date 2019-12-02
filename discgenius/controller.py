@@ -7,7 +7,7 @@ from .utility import audio_file_converter as converter
 from .utility import utility as util
 
 
-def generate_safe_filename(config, filename, extension):
+def generate_safe_song_name(config, filename, extension):
     # generate safe file ending
     ending = "wav"
     if len(filename) <= 4:
@@ -26,6 +26,15 @@ def generate_safe_filename(config, filename, extension):
         fwe = filename[:-(len(extension) + 1)]
         i += 1
     return filename
+
+
+def generate_safe_mix_name(config, orig_filename):
+    i = 1
+    new_filename = orig_filename
+    while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
+        new_filename = f"{orig_filename}-{i}"
+        i += 1
+    return new_filename
 
 
 def create_wav_from_mp3(config, filename, extension):
@@ -52,17 +61,17 @@ def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name):
 
     # 3. mix both songs
     then = time.time()
-    mixed_song = mixer.create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl_list, mix_name)
+    mixed_song = mixer.create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl_list, mix_name, scenario_name)
     now = time.time()
     print("INFO - Mixing file took: %0.1f seconds" % (now - then))
 
     # 4. convert to mp3
-    if mixed_song:
-        mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
-        if mp3_mix_name:
-            os.remove(mixed_song['path'])
-            mixed_song['name'] = mp3_mix_name
-            mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
+    #if mixed_song:
+    #    mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
+    #    if mp3_mix_name:
+    #        os.remove(mixed_song['path'])
+    #        mixed_song['name'] = mp3_mix_name
+    #        mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
 
     # 5. export json data
     scenario_data = util.get_scenario(config, scenario_name)

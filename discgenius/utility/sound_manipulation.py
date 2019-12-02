@@ -1,12 +1,18 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# This module contains methods to manipulate sound with the help of applying filters.
+# The scipy package contains filter methods like lfilter & butter which will be used to shape the sound for a good transition.
+
 import math
 
 import numpy as np
 import scipy as sp
 from scipy.signal import butter, lfilter
 
-from . import utility as util
+from . import common
 
-SAMPLE_RATE = util.get_config('content.ini')['sample_rate']
+SAMPLE_RATE = common.get_config('content.ini')['sample_rate']
 
 
 ################################################################ filter types ################################################################
