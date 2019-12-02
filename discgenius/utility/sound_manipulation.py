@@ -4,7 +4,10 @@ import numpy as np
 import scipy as sp
 from scipy.signal import butter, lfilter
 
-SAMPLE_RATE = 44100
+from . import utility as util
+
+SAMPLE_RATE = util.get_config('content.ini')['sample_rate']
+
 
 ################################################################ filter types ################################################################
 
@@ -98,7 +101,7 @@ def mid_shelf_filter(frame_array, gain, freq_cut_1=200, freq_cut_2=4500):
     # 1. lower all frequencies with gain level
     frame_array = high_shelf_filter(frame_array, gain, freq_cut=5)
 
-    # 2. boost high & low frequencies back to normal (only mid's have been changed)
+    # 2. boost high & low frequencies back to normal (result: only mid's have been changed)
     return high_shelf_filter(low_shelf_filter(frame_array, minus_gain, freq_cut=freq_cut_1), minus_gain,
                              freq_cut=freq_cut_2)
 
@@ -138,6 +141,7 @@ def reduce_amplitude(frame_array):
 
 
 def edit_volume_by_factor(audio_channel, factor):
+    # factor should be between 0 - 1.0
     a_placeholder = []
 
     for frame in audio_channel:
@@ -151,7 +155,7 @@ def cut_bass_for_last_bar(list_of_frames, length_of_segment):
     length_in_frames = len(list_of_frames)
     frames_to_edit = round(length_in_frames / length_of_segment)
     if frames_to_edit > 100000:
-        print("INFO - 1 bar bass cut has propably not the right length... 1 bar frames: '%s', length of segment %s." % (
+        print("INFO - 1 bar bass cut has probably not the right length... 1 bar frames: '%s', length of segment %s." % (
             frames_to_edit, length_of_segment))
     start = length_in_frames - frames_to_edit
 
@@ -171,4 +175,6 @@ def cut_bass_for_last_bar(list_of_frames, length_of_segment):
 
 
 def modify_mids_and_highs_by_gain(frame_array, gain):
+    if gain == 0:
+        return frame_array
     return mid_shelf_filter(high_shelf_filter(frame_array, gain), gain)

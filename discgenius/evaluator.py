@@ -5,25 +5,21 @@
 # it will define the transition points and the length of the two transition segments
 
 
-__author__ = "Oskar Sailer"
-
-SAMPLE_RATE = 44100
-
-
-def evaluate_segments():
+def evaluate_segments(config):
     # placeholder until analysis provides results
     # then song information about segments will be imported from csv file
 
     # TSL = Transition Segment Length
+    # tsl_list = [48, 16]
     tsl_list = [32, 32]
 
     transition_points = {
-        'a': 56 + 0.275,
-        'c': 300 + 4 + 0.575,
-        'd': 300 + 57 + 0.533,
-        'e': 360 + 50 + 0.5
+        'a': 15.115,
+        'c': 324.95,
+        'd': 384.02,
+        'e': 443.10
     }
-    transition_points['b'] = transition_points['a'] + (transition_points['d'] - transition_points['c'])
-    transition_points['x'] = transition_points['a'] + (transition_points['e'] - transition_points['c'])
+    transition_points['b'] = round(transition_points['a'] + (transition_points['d'] - transition_points['c']), 3)
+    transition_points['x'] = round(transition_points['a'] + (transition_points['e'] - transition_points['c']), 3)
 
     return tsl_list, transition_points

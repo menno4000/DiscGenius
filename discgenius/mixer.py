@@ -11,25 +11,27 @@
 
 __author__ = "Oskar Sailer"
 
-import os
+import datetime
 import sys
 
-import numpy as np
 import librosa
+import numpy as np
 
-import evaluator
-import scenarios
-import utility as util
-
-SAMPLE_RATE = 44100
+from . import scenarios
+from .utility import utility as util
 
 TSL_LIST = []
 
 
 # Song A with full Bass
 def modify_transition_segment_1(frame_array_a, frame_array_b):
-    transition_song_a, transition_song_b = scenarios.transition_scenario_2_segment_1_dynamic(frame_array_a,
-                                                                                             frame_array_b, TSL_LIST[0])
+    # just low cut
+    transition_song_a = frame_array_a
+    transition_song_b = scenarios.low_cut_segment(frame_array_b)
+
+    # smooth EQ transition
+    # transition_song_a, transition_song_b = scenarios.transition_scenario_2_segment_1_dynamic(frame_array_a,
+    #                                                                                         frame_array_b, TSL_LIST[0])
 
     combined_songs = []
     for i in range(len(transition_song_a)):
@@ -40,8 +42,13 @@ def modify_transition_segment_1(frame_array_a, frame_array_b):
 
 # Song B with full Bass
 def modify_transition_segment_2(frame_array_a, frame_array_b):
-    transition_song_a, transition_song_b = scenarios.transition_scenario_2_segment_2_dynamic(frame_array_a,
-                                                                                             frame_array_b, TSL_LIST[1])
+    # just low cut
+    transition_song_a = scenarios.low_cut_segment(frame_array_a)
+    transition_song_b = frame_array_b
+
+    # smooth EQ transition
+    # transition_song_a, transition_song_b = scenarios.transition_scenario_2_segment_2_dynamic(frame_array_a,
+    #                                                                                         frame_array_b, TSL_LIST[1])
 
     combined_songs = []
     for i in range(len(transition_song_a)):
@@ -95,20 +102,21 @@ def mix_transition_segments(song_a, song_b, transition_points, frames):
     return transition_segment_left, transition_segment_right
 
 
-def create_mixed_wav_file(song_a, song_b, transition_points, paths, frames, tsl_list):
+def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl_list, mix_name):
     global TSL_LIST
     TSL_LIST = tsl_list
+    sample_rate = config['sample_rate']
 
-    util.log_info_about_mix(song_a, song_b, transition_points, frames)
-    print("INFO - Keep calm... Mixing both audiofiles.")
+    # util.log_info_about_mix(song_a, song_b, transition_points, frames)
+    print("INFO - Start process of mixing two given songs.")
 
-    if not song_a['frame_rate'] == 44100 and not song_b['frame_rate'] == 44100:
-        print("ERROR - Skipping mixing because sample rate is not 44.100Hz for both songs.")
+    if not song_a['frame_rate'] == sample_rate and not song_b['frame_rate'] == sample_rate:
+        print(f"ERROR - Skipping mixing because sample rate is not {sample_rate}Hz for both songs.")
         sys.exit()
 
     print("INFO - Adding unmodified frames of song A to mix. Length: '%0.2f's" % transition_points['c'])
     # reading song a just until point C and get all frames for both channels
-    song_x = librosa.core.load(song_a['path'], sr=evaluator.SAMPLE_RATE, mono=False, duration=transition_points['c'])
+    song_x = librosa.core.load(song_a['path'], sr=sample_rate, mono=False, duration=transition_points['c'])
     left_mix_channel = song_x[0][0]
     right_mix_channel = song_x[0][1]
 
@@ -121,9 +129,9 @@ def create_mixed_wav_file(song_a, song_b, transition_points, paths, frames, tsl_
     del transition_segment_left, transition_segment_right
 
     print("INFO - Adding unmodified frames of song B to mix. Length: '%0.2f's" % (
-            song_b['total_frames'] / evaluator.SAMPLE_RATE - transition_points['x']))
+            song_b['total_frames'] / sample_rate - transition_points['x']))
     transition_time = transition_points['e'] - transition_points['c']
-    start_of_b = int(round((transition_points['a'] + transition_time) * evaluator.SAMPLE_RATE))
+    start_of_b = int(round((transition_points['a'] + transition_time) * sample_rate))
     current_mix = [[], []]
     for i in range(start_of_b, song_b['total_frames']):
         current_mix[0].append(song_b['left_channel'][i])
@@ -132,10 +140,24 @@ def create_mixed_wav_file(song_a, song_b, transition_points, paths, frames, tsl_
     left_mix_channel = np.append(left_mix_channel, np.asarray(current_mix[0], dtype='float32'))
     right_mix_channel = np.append(right_mix_channel, np.asarray(current_mix[1], dtype='float32'))
 
-    if os.path.exists(paths['result_path']):
-        print("INFO - Removing old file...")
-        os.remove(paths['result_path'])
-
     print("INFO - Creation of a mix finished. Amount of frames: '%s', Length: '%sm'" % (
-        len(left_mix_channel), util.get_length_out_of_frames(len(left_mix_channel))))
-    return np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
+        len(left_mix_channel), util.get_length_out_of_frames(config, len(left_mix_channel))))
+
+    mix_array = np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
+
+    if mix_name == "":
+        mix_name = f"mix_{datetime.datetime.utcnow()}"
+    mix_name += ".wav"
+    result_path = f"{config['mix_path']}/{mix_name}"
+
+    util.save_wav_file(config, mix_array, result_path)
+    mix_song = {
+        'frame_rate': config['sample_rate'],
+        'path': result_path,
+        'name': mix_name,
+        'identifier': 'mix',
+        'total_frames': len(mix_array[0]),
+        'length': util.get_length_out_of_frames(config, len(mix_array))
+    }
+
+    return mix_song
