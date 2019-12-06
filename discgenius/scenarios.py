@@ -11,7 +11,7 @@ import numpy as np
 from .utility import sound_manipulation as sm
 
 
-def chunks(l, n):
+def get_chunks_from_array(l, n):
     n = max(1, n)
     return (l[i:i + n] for i in range(0, len(l), n))
 
@@ -25,8 +25,8 @@ def vff_1_segment_1(frame_array_a, frame_array_b, scenario):
     frames_per_step = int(len(frame_array_a) / steps)
     frame_array_a_edited = []
     frame_array_b_edited = []
-    frame_array_a_segmented = chunks(frame_array_a, frames_per_step)
-    frame_array_b_segmented = chunks(frame_array_b, frames_per_step)
+    frame_array_a_segmented = get_chunks_from_array(frame_array_a, frames_per_step)
+    frame_array_b_segmented = get_chunks_from_array(frame_array_b, frames_per_step)
 
     # slowly decrease volume of Song A, increase volume of Song B
     i = 0
@@ -52,8 +52,8 @@ def vff_1_segment_2(frame_array_a, frame_array_b, scenario):
     frames_per_step = int(len(frame_array_a) / steps)
     frame_array_a_edited = []
     frame_array_b_edited = []
-    frame_array_a_segmented = chunks(frame_array_a, frames_per_step)
-    frame_array_b_segmented = chunks(frame_array_b, frames_per_step)
+    frame_array_a_segmented = get_chunks_from_array(frame_array_a, frames_per_step)
+    frame_array_b_segmented = get_chunks_from_array(frame_array_b, frames_per_step)
 
     # slowly decrease volume of Song A, increase volume of Song B
     i = 0
@@ -81,8 +81,8 @@ def EQ_1_segment_1_dynamic(frame_array_a, frame_array_b, scenario):
     frames_per_step = int(len(frame_array_a) / steps)
     frame_array_a_edited = []
     frame_array_b_edited = []
-    frame_array_a_segmented = chunks(frame_array_a, frames_per_step)
-    frame_array_b_segmented = chunks(frame_array_b, frames_per_step)
+    frame_array_a_segmented = get_chunks_from_array(frame_array_a, frames_per_step)
+    frame_array_b_segmented = get_chunks_from_array(frame_array_b, frames_per_step)
 
     # slowly decrease EQ for mid's & high's of Song A, increase EQ for mid's & high's of Song B
     i = 0
@@ -109,8 +109,8 @@ def EQ_1_segment_2_dynamic(frame_array_a, frame_array_b, scenario):
     frames_per_step = int(len(frame_array_a) / steps)
     frame_array_a_edited = []
     frame_array_b_edited = []
-    frame_array_a_segmented = chunks(frame_array_a, frames_per_step)
-    frame_array_b_segmented = chunks(frame_array_b, frames_per_step)
+    frame_array_a_segmented = get_chunks_from_array(frame_array_a, frames_per_step)
+    frame_array_b_segmented = get_chunks_from_array(frame_array_b, frames_per_step)
 
     # slowly decrease EQ for mid's & highs' of Song A, increase EQ for mid's & high's of Song B
     i = 0 + steps
@@ -126,6 +126,56 @@ def EQ_1_segment_2_dynamic(frame_array_a, frame_array_b, scenario):
 
     # EQ: cut lows of Song A to -26
     frame_array_a_edited = sm.low_shelf_filter(frame_array_a_edited, -26)
+
+    return frame_array_a_edited, frame_array_b_edited
+
+
+def crossfade_segment_1(frame_array_a, frame_array_b, scenario):
+    vff_a_list = scenario['vff_a']
+    vff_b_list = scenario['vff_b']
+    steps = int(len(vff_a_list)/2)
+
+    # cut segment into pieces for smoother transition
+    frames_per_step = int(len(frame_array_a) / steps)
+    frame_array_a_edited = []
+    frame_array_b_edited = []
+    frame_array_a_segmented = get_chunks_from_array(frame_array_a, frames_per_step)
+    frame_array_b_segmented = get_chunks_from_array(frame_array_b, frames_per_step)
+
+    i = 0
+    for segment_a, segment_b in zip(frame_array_a_segmented, frame_array_b_segmented):
+        frame_array_a_edited.append(sm.edit_volume_by_factor(segment_a, vff_a_list[i]))
+        frame_array_b_edited.append(sm.edit_volume_by_factor(segment_b, vff_b_list[i]))
+        i += 1
+
+    frame_array_a_edited = np.concatenate(frame_array_a_edited)
+    frame_array_b_edited = np.concatenate(frame_array_b_edited)
+
+    return frame_array_a_edited, frame_array_b_edited
+
+
+def crossfade_segment_2(frame_array_a, frame_array_b, scenario):
+    vff_a_list = scenario['vff_a']
+    vff_b_list = scenario['vff_b']
+    steps = int(len(vff_a_list)/2)
+
+    # cut segment into pieces for smoother transition
+    frames_per_step = int(len(frame_array_a) / steps)
+    frame_array_a_edited = []
+    frame_array_b_edited = []
+    frame_array_a_segmented = get_chunks_from_array(frame_array_a, frames_per_step)
+    frame_array_b_segmented = get_chunks_from_array(frame_array_b, frames_per_step)
+
+    i = 0 + steps
+    for segment_a, segment_b in zip(frame_array_a_segmented, frame_array_b_segmented):
+        if i > len(vff_a_list)-1:  # necessary because sometime a single frame is the last (additional) separated segment
+            i = len(vff_a_list)-1
+        frame_array_a_edited.append(sm.edit_volume_by_factor(segment_a, vff_a_list[i]))
+        frame_array_b_edited.append(sm.edit_volume_by_factor(segment_b, vff_b_list[i]))
+        i += 1
+
+    frame_array_a_edited = np.concatenate(frame_array_a_edited)
+    frame_array_b_edited = np.concatenate(frame_array_b_edited)
 
     return frame_array_a_edited, frame_array_b_edited
 

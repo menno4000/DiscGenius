@@ -46,6 +46,8 @@ def modify_transition_segment_1(frame_array_a, frame_array_b):
     elif scenario_name == "VFF_1.1":
         transition_song_a, transition_song_b = scenarios.vff_1_segment_1(frame_array_a, frame_array_b, SCENARIO)
         transition_song_a = sm.cut_bass_for_last_bar(transition_song_a, TSL_LIST[0])
+    elif scenario_name == "CF_1.0":
+        transition_song_a, transition_song_b = scenarios.crossfade_segment_1(frame_array_a, frame_array_b, SCENARIO)
     else:
         print("ERROR - Could not find a valid transition scenario.")
         return
@@ -77,6 +79,8 @@ def modify_transition_segment_2(frame_array_a, frame_array_b):
     elif scenario_name == "VFF_1.1":
         transition_song_a, transition_song_b = scenarios.vff_1_segment_2(frame_array_a, frame_array_b, SCENARIO)
         transition_song_b = sm.cut_bass_for_last_bar(transition_song_b, TSL_LIST[0])
+    elif scenario_name == "CF_1.0":
+        transition_song_a, transition_song_b = scenarios.crossfade_segment_2(frame_array_a, frame_array_b, SCENARIO)
     else:
         print("ERROR - Could not find a valid transition scenario.")
         return
