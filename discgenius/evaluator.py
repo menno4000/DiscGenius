@@ -9,6 +9,8 @@ def evaluate_segments(config):
     # placeholder until analysis provides results
     # then song information about segments will be imported from csv file
 
+    # --- andromeda to 86 --- C-D-E: 5:24-6:24:7:23 --- 32-32
+
     # TSL = Transition Segment Length
     # tsl_list = [48, 16]
     tsl_list = [32, 32]

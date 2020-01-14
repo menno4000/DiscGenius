@@ -1,4 +1,5 @@
 {
+	"short_name": "VFF_1.0",
 	"full_name": "volume fading transition with bass swap",
 	"vff": [0.8, 0.7, 0.6, 0.5],
 	"features": {

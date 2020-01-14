@@ -1,6 +1,7 @@
-# for converting files you will need ffmpeg and LAME
-# https://ffmpeg.org/
-# http://lame.sourceforge.net/
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# audio file conversion to wav and from wav with the use of ffmpeg and LAME.
 
 import os
 
@@ -21,7 +22,7 @@ def convert_result_to_mp3(config, mix_name):
         mix_mp3 = f"{mix_name[:-4]}.mp3"
         wav_path = f"{config['mix_path']}/{mix_name}"
         mp3_path = f"{config['mix_path']}/{mix_mp3}"
-        convert_wav_to_mp3(config, wav_path, mp3_path, config['mp3_bitrate'])
+        convert_wav_to_mp3(config, wav_path, mp3_path)
         print("INFO - File was converted and is located at '%s'" % mp3_path)
         return mix_mp3
     return

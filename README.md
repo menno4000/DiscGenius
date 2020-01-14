@@ -18,6 +18,11 @@ Unsere Gedanken & Notizen sind hier festgehalten: https://tinyurl.com/yy4fbkgz
 ## Setup
 
 You will need python3 and pip. After that you can start the application with running the script ```./run_api.sh```.
+For audio file conversion you will need 'ffmpeg' (which is already included in the repo, ```https://ffmpeg.org/```) and 'LAME' which can be downloaded here ```http://lame.sourceforge.net/```.
+
+The different mix scenarios for a transition are declared under ``/scenarios``. 
+
+Currently we provide 7 different scenarios: ``CF_1.0, EQ_1.0, EQ_1.1, EQ_2.0, EQ_2.1, VFF_1.0, VFF_1.1``
 
 It should automatically install the required python modules. After that the app is available under ```localhost:9001```.
 The app provides the following API's:
@@ -28,9 +33,19 @@ GET /mixes       -   See all available mixes on the server which you can downloa
 GET /scenarios   -   See all available scenarios that you can chose from to create a mix.
 
 POST /upload     -   Upload a song to the server. Required query parameters: 'filename' & 'extension'
+                 -   Example: localhost:9001/upload?filename=Dusty Kid - Sysma (Original Mix).wav&extension=wav
+
 POST /createMix  -   Start the process of analysing and mixing two given songs. Required body parameters: 'song_a_name', 'song_b_name', 'scenario_name'. Optional parameters: 'mix_name'.
+                 -   Example body: 
+                     {
+                     	"song_a_name": "Dok & Martin - Andromeda (Original Mix).wav",
+                     	"song_b_name": "Hell Driver - 86 (Original Mix).wav",
+                     	"scenario_name": "CF_1.0",
+                     	"mix_name": "andromeda_to_86_cf_1.0"
+                     }
 
 GET /getMix      -   Download a created mix. Required query param: 'name'.
+                 -   Example: localhost:9001/getMix?name=my_personal_mix.mp3
 ```
 
 

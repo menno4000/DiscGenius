@@ -1,38 +1,58 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# this script will execute a transition between two given songs, using the transition points found by the evaluator script
-# the default transition will occur between two segments defined by the points: C, D & E in Song A (points A, B & X in Song B)
-# in these segments the frames of both songs will be manipulated with filters (provided by the sound_manipulation.py) and then added up
+# this script will create a transition between two given songs, using the transition points found by the evaluator
+# script. the default transition will occur between two segments defined by the points:
+# C, D & E in Song A (points A, B & X in Song B). in these segments the frames of both songs will be manipulated
+# with filters (provided by the sound_manipulation.py) and then added up
 #
-# for manipulating the sound every frame has to be edited
-# the frames will usually be loaded into a two dimensional list or numpy array (2,n), containing two lists of frames per channel (stereo)
-# the input files should already have the same bpm values, the analysis class should handle that beforehand
-
-__author__ = "Oskar Sailer"
+# for manipulating the sound every frame has to be edited. the frames will usually be loaded into a two dimensional list
+# or numpy array (2,n), containing two lists of frames per channel (stereo). the input files should already have the
+# same bpm values, the analysis class should handle that beforehand.
 
 import datetime
+import pprint
 import sys
 
 import librosa
 import numpy as np
 
 from . import scenarios
+from .utility import sound_manipulation as sm
 from .utility import utility as util
 
 TSL_LIST = []
+SCENARIO = {}
+pp = pprint.PrettyPrinter(indent=2)
 
 
 # Song A with full Bass
 def modify_transition_segment_1(frame_array_a, frame_array_b):
-    # just low cut
-    transition_song_a = frame_array_a
-    transition_song_b = scenarios.low_cut_segment(frame_array_b)
+    scenario_name = SCENARIO['short_name']
+    if scenario_name == "EQ_1.0":
+        transition_song_a, transition_song_b = scenarios.EQ_1_segment_1_dynamic(frame_array_a, frame_array_b, SCENARIO)
+    elif scenario_name == "EQ_1.1":
+        transition_song_a, transition_song_b = scenarios.EQ_1_segment_1_dynamic(frame_array_a, frame_array_b, SCENARIO)
+        transition_song_a = sm.cut_bass_for_last_bar(transition_song_a, TSL_LIST[0])
+    elif scenario_name == "EQ_2.0":
+        transition_song_a = frame_array_a
+        transition_song_b = scenarios.low_cut_segment(frame_array_b)
+    elif scenario_name == "EQ_2.1":
+        transition_song_a = frame_array_a
+        transition_song_b = scenarios.low_cut_segment(frame_array_b)
+        transition_song_a = sm.cut_bass_for_last_bar(transition_song_a, TSL_LIST[0])
+    elif scenario_name == "VFF_1.0":
+        transition_song_a, transition_song_b = scenarios.vff_1_segment_1(frame_array_a, frame_array_b, SCENARIO)
+    elif scenario_name == "VFF_1.1":
+        transition_song_a, transition_song_b = scenarios.vff_1_segment_1(frame_array_a, frame_array_b, SCENARIO)
+        transition_song_a = sm.cut_bass_for_last_bar(transition_song_a, TSL_LIST[0])
+    elif scenario_name == "CF_1.0":
+        transition_song_a, transition_song_b = scenarios.crossfade_segment_1(frame_array_a, frame_array_b, SCENARIO)
+    else:
+        print("ERROR - Could not find a valid transition scenario.")
+        return
 
-    # smooth EQ transition
-    # transition_song_a, transition_song_b = scenarios.transition_scenario_2_segment_1_dynamic(frame_array_a,
-    #                                                                                         frame_array_b, TSL_LIST[0])
-
+    # mix two audio signals
     combined_songs = []
     for i in range(len(transition_song_a)):
         combined_songs.append(transition_song_a[i] + transition_song_b[i])
@@ -42,13 +62,28 @@ def modify_transition_segment_1(frame_array_a, frame_array_b):
 
 # Song B with full Bass
 def modify_transition_segment_2(frame_array_a, frame_array_b):
-    # just low cut
-    transition_song_a = scenarios.low_cut_segment(frame_array_a)
-    transition_song_b = frame_array_b
-
-    # smooth EQ transition
-    # transition_song_a, transition_song_b = scenarios.transition_scenario_2_segment_2_dynamic(frame_array_a,
-    #                                                                                         frame_array_b, TSL_LIST[1])
+    scenario_name = SCENARIO['short_name']
+    if scenario_name == "EQ_1.0":
+        transition_song_a, transition_song_b = scenarios.EQ_1_segment_2_dynamic(frame_array_a, frame_array_b, SCENARIO)
+    elif scenario_name == "EQ_1.1":
+        transition_song_a, transition_song_b = scenarios.EQ_1_segment_2_dynamic(frame_array_a, frame_array_b, SCENARIO)
+        transition_song_b = sm.cut_bass_for_last_bar(transition_song_b, TSL_LIST[0])
+    elif scenario_name == "EQ_2.0":
+        transition_song_a = scenarios.low_cut_segment(frame_array_a)
+        transition_song_b = frame_array_b
+    elif scenario_name == "EQ_2.1":
+        transition_song_a = scenarios.low_cut_segment(frame_array_a)
+        transition_song_b = sm.cut_bass_for_last_bar(frame_array_b, TSL_LIST[0])
+    elif scenario_name == "VFF_1.0":
+        transition_song_a, transition_song_b = scenarios.vff_1_segment_2(frame_array_a, frame_array_b, SCENARIO)
+    elif scenario_name == "VFF_1.1":
+        transition_song_a, transition_song_b = scenarios.vff_1_segment_2(frame_array_a, frame_array_b, SCENARIO)
+        transition_song_b = sm.cut_bass_for_last_bar(transition_song_b, TSL_LIST[0])
+    elif scenario_name == "CF_1.0":
+        transition_song_a, transition_song_b = scenarios.crossfade_segment_2(frame_array_a, frame_array_b, SCENARIO)
+    else:
+        print("ERROR - Could not find a valid transition scenario.")
+        return
 
     combined_songs = []
     for i in range(len(transition_song_a)):
@@ -58,7 +93,7 @@ def modify_transition_segment_2(frame_array_a, frame_array_b):
 
 
 # this method will combine the frames of song a & b in two separate time segments (C -- D & D -- E)
-def mix_transition_segments(song_a, song_b, transition_points, frames):
+def mix_transition_segments(song_a, song_b, frames):
     segment_channels_a = [[], []]
     segment_channels_b = [[], []]
 
@@ -102,13 +137,16 @@ def mix_transition_segments(song_a, song_b, transition_points, frames):
     return transition_segment_left, transition_segment_right
 
 
-def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl_list, mix_name):
+def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl_list, mix_name, scenario_name):
     global TSL_LIST
+    global SCENARIO
     TSL_LIST = tsl_list
+    SCENARIO = util.get_scenario(config, scenario_name)
     sample_rate = config['sample_rate']
 
     # util.log_info_about_mix(song_a, song_b, transition_points, frames)
-    print("INFO - Start process of mixing two given songs.")
+    print("INFO - Start process of mixing two given songs. Scenario:")
+    pp.pprint(SCENARIO)
 
     if not song_a['frame_rate'] == sample_rate and not song_b['frame_rate'] == sample_rate:
         print(f"ERROR - Skipping mixing because sample rate is not {sample_rate}Hz for both songs.")
@@ -122,8 +160,7 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
 
     print("INFO - Creating transition segments between A & B. Length: '%0.2f's" % (
             transition_points['e'] - transition_points['c']))
-    transition_segment_left, transition_segment_right = mix_transition_segments(song_a, song_b, transition_points,
-                                                                                frames)
+    transition_segment_left, transition_segment_right = mix_transition_segments(song_a, song_b, frames)
     left_mix_channel = np.append(left_mix_channel, transition_segment_left)
     right_mix_channel = np.append(right_mix_channel, transition_segment_right)
     del transition_segment_left, transition_segment_right
@@ -146,7 +183,7 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
     mix_array = np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
 
     if mix_name == "":
-        mix_name = f"mix_{datetime.datetime.utcnow()}"
+        mix_name = f"mix_{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     mix_name += ".wav"
     result_path = f"{config['mix_path']}/{mix_name}"
 

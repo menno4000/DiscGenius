@@ -1,0 +1,9 @@
+{
+	"short_name": "CF_1.0",
+	"full_name": "crossfade transition with configurable vff values",
+	"vff_a": [0.95, 0.82, 0.75, 0.64, 0.52, 0.46, 0.28, 0.1],
+	"vff_b": [0.1, 0.28, 0.46, 0.52, 0.64, 0.75, 0.82, 0.95],
+	"features": {
+		"1bar_bass_cut": false
+	}
+}

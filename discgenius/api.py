@@ -6,11 +6,12 @@ from starlette.requests import Request
 from starlette.responses import StreamingResponse
 
 from . import controller
+from .utility import common
 from .utility import utility as util
 
 app = FastAPI()
 
-config = util.get_config('./content.ini')
+config = common.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
 
 
@@ -24,15 +25,18 @@ def save_song(config, filename, song_data):
 
 
 @app.post("/upload")
-async def upload_song(filename: str, extension: str, request: Request):
+async def upload_song(request: Request, filename: str = "", extension: str = ""):
     body = await request.body()
-    if not body:
-        raise_exception(400, "Please provide an audio file in the body.")
+
+    if not body or filename == "" or extension == "":
+        raise_exception(400,
+                        "Please provide a filename and the extension (format) of the file as query parameters and the audio file itself in the body.")
 
     if extension not in config['audio_formats']:
-        raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config['audio_formats'])
+        raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config[
+            'audio_formats'])
 
-    filename = controller.generate_safe_filename(config, filename, extension)
+    filename = controller.generate_safe_song_name(config, filename, extension)
     save_song(config, filename, body)
 
     if not extension == "wav":
@@ -53,7 +57,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
               mix_name: str = Body(default=""),
               scenario_name: str = Body(default="")):
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
-        raise_exception(400, "Please provide three attributes: 'song_a_name', 'song_b_name' and 'transition_scenario'.")
+        raise_exception(400, "Please provide three attributes: 'song_a_name', 'song_b_name' and 'scenario_name'.")
 
     if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
             f"{config['song_path']}/{song_b_name}"):
@@ -63,6 +67,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if scenario_name not in SCENARIOS:
         raise_exception(400, "Transition scenario could not be found.")
 
+    mix_name = controller.generate_safe_mix_name(config, mix_name)
     return controller.mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name)
 
 
