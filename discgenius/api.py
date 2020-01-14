@@ -6,8 +6,8 @@ from starlette.requests import Request
 from starlette.responses import StreamingResponse
 
 from . import controller
+from .utility import common
 from .utility import utility as util
-from.utility import common
 
 app = FastAPI()
 
@@ -25,13 +25,16 @@ def save_song(config, filename, song_data):
 
 
 @app.post("/upload")
-async def upload_song(filename: str, extension: str, request: Request):
+async def upload_song(request: Request, filename: str = "", extension: str = ""):
     body = await request.body()
-    if not body:
-        raise_exception(400, "Please provide an audio file in the body.")
+
+    if not body or filename == "" or extension == "":
+        raise_exception(400,
+                        "Please provide a filename and the extension (format) of the file as query parameters and the audio file itself in the body.")
 
     if extension not in config['audio_formats']:
-        raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config['audio_formats'])
+        raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config[
+            'audio_formats'])
 
     filename = controller.generate_safe_song_name(config, filename, extension)
     save_song(config, filename, body)
