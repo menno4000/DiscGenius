@@ -22,15 +22,18 @@ def matchTimes(signal_1, signal_2, rate_1, rate_2, desired_tempo=0):
     if desired_tempo == 0:
         print("matching second signal to first signal. Tempo 1: "+str(tempo_1)+" Tempo 2: "+str(tempo_2)+" Desired Tempo: "+str(tempo_1))
         tempo_ratio = tempo_1 / tempo_2
+        print("tempo ratio: "+str(tempo_ratio))
         new_rate_2 = (rate_2/tempo_ratio)
         signal_2_stretched = librosa.resample(signal_2, rate_2, new_rate_2)
 
-        return(signal_1, signal_2_stretched)
+        return(signal_1, signal_2_stretched, 0, tempo_ratio)
 
     else:
         print("matching signals to desired tempo. Tempo 1: "+str(tempo_1)+" Tempo 2: "+str(tempo_2)+" Desired Tempo: "+str(desired_tempo))
         tempo_ratio_1 = desired_tempo/tempo_1
         tempo_ratio_2 = desired_tempo/tempo_2
+        print("tempo ratio 1: "+str(tempo_ratio_1))
+        print("tempo ratio 2: "+str(tempo_ratio_2))
 
         new_rate_1 = (rate_1/tempo_ratio_1)
         new_rate_2 = (rate_2/tempo_ratio_2)
@@ -38,7 +41,7 @@ def matchTimes(signal_1, signal_2, rate_1, rate_2, desired_tempo=0):
         signal_1_stretched = librosa.resample(signal_1, rate_1, new_rate_1)
         signal_2_stretched = librosa.resample(signal_2, rate_2, new_rate_2)
 
-        return(signal_1_stretched, signal_2_stretched)
+        return(signal_1_stretched, signal_2_stretched, tempo_ratio_1, tempo_ratio_2)
 
 signal_1, signal_2_stretched = matchTimes(signal_1, signal_2, rate_1, rate_2)
 sf.write("boomblast_01.wav", signal_2_stretched, rate_2)
