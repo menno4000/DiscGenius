@@ -24,19 +24,28 @@ def save_song(config, filename, song_data):
         f.write(song_data)
 
 
+def convert_bpm(bpm):
+    try:
+        return float(bpm)
+    except ValueError:
+        raise_exception(400, "Please provide a number as bpm value.")
+
+
 @app.post("/upload")
-async def upload_song(request: Request, filename: str = "", extension: str = ""):
+async def upload_song(request: Request, filename: str = "", extension: str = "", bpm: str = ""):
     body = await request.body()
 
-    if not body or filename == "" or extension == "":
-        raise_exception(400,
-                        "Please provide a filename and the extension (format) of the file as query parameters and the audio file itself in the body.")
-
+    if filename == "" or extension == "" or bpm == "":
+        raise_exception(400, "Please provide a filename, the extension (format) of the file and the bpm value of the song as query parameters.")
+    if not body:
+        raise_exception(400, "Please provide an audio file as a binary file.")
     if extension not in config['audio_formats']:
         raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config[
             'audio_formats'])
 
-    filename = controller.generate_safe_song_name(config, filename, extension)
+    bpm = convert_bpm(bpm)
+
+    filename = controller.generate_safe_song_name(config, filename, extension, bpm)
     save_song(config, filename, body)
 
     if not extension == "wav":
@@ -44,20 +53,21 @@ async def upload_song(request: Request, filename: str = "", extension: str = "")
         filename = filename[:-(len(extension))] + "wav"
         return {
             "filename": filename,
-            "info": "'.wav file' was created. Please refer to this file when calling /mix."
+            "info": "'.wav file' was created. Please refer to this file when calling /createMix."
         }
     return {
         "filename": filename,
-        "info": "Please refer to this name, when calling '/mix'"
+        "info": "Please refer to this name, when calling '/createMix'"
     }
 
 
 @app.post("/createMix")
 async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
               mix_name: str = Body(default=""),
-              scenario_name: str = Body(default="")):
-    if song_a_name == "" or song_b_name == "" or scenario_name == "":
-        raise_exception(400, "Please provide three attributes: 'song_a_name', 'song_b_name' and 'scenario_name'.")
+              scenario_name: str = Body(default=""),
+              bpm: str = Body(default="")):
+    if song_a_name == "" or song_b_name == "" or scenario_name == "" or bpm == "":
+        raise_exception(400, "Please provide four attributes: 'song_a_name', 'song_b_name', 'scenario_name' and 'bpm'.")
 
     if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
             f"{config['song_path']}/{song_b_name}"):
@@ -67,8 +77,10 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if scenario_name not in SCENARIOS:
         raise_exception(400, "Transition scenario could not be found.")
 
-    mix_name = controller.generate_safe_mix_name(config, mix_name)
-    return controller.mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name)
+    bpm = convert_bpm(bpm)
+
+    mix_name = controller.generate_safe_mix_name(config, mix_name, bpm)
+    return controller.mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name, bpm)
 
 
 @app.get("/getMix")

@@ -7,32 +7,29 @@ from .utility import audio_file_converter as converter
 from .utility import utility as util
 
 
-def generate_safe_song_name(config, filename, extension):
+def generate_safe_song_name(config, filename, extension, bpm):
+    filename = filename.replace("_", "-")
+
     # generate safe file ending
-    ending = "wav"
-    if len(filename) <= 4:
-        filename = f"{filename}.{extension}"
-    else:
-        ending = filename.split('.')[-1]
-    if ending not in config['audio_formats']:
-        filename = f"{filename}.{extension}"
+    filename = f"{filename}_{bpm}.{extension}"
 
     # check if file exists
-    filename_without_extension = filename[:-(len(extension) + 1)]
-    fwe = filename_without_extension
+    filename_without_extension_and_bpm = filename.split('_')[0]
+    fwe = filename_without_extension_and_bpm
     i = 1
+    # check if given audio file or audio file in wav already exist, generate new name until a safe one is found
     while os.path.isfile(f"{config['song_path']}/{filename}") or os.path.isfile(f"{config['song_path']}/{fwe}.wav"):
-        filename = f"{filename_without_extension}-{i}.{extension}"
+        filename = f"{filename_without_extension_and_bpm}-{i}_{bpm}.{extension}"
         fwe = filename[:-(len(extension) + 1)]
         i += 1
     return filename
 
 
-def generate_safe_mix_name(config, orig_filename):
+def generate_safe_mix_name(config, orig_filename, bpm):
     i = 1
-    new_filename = orig_filename
+    new_filename = f"{orig_filename}_{bpm}"
     while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
-        new_filename = f"{orig_filename}-{i}"
+        new_filename = f"{orig_filename}-{i}_{bpm}"
         i += 1
     return new_filename
 
@@ -43,13 +40,12 @@ def create_wav_from_mp3(config, filename, extension):
     converter.convert_mp3_to_wav(config, input_path, output_path)
 
 
-def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name):
+def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name, bpm):
     # --- andromeda to 86 --- C-D-E: 5:24-6:24:7:23 --- 32-32
 
+    # 1. analyse songs and change bpm
     song_a = util.read_wav_file(config, f"{config['song_path']}/{song_a_name}", identifier='songA')
     song_b = util.read_wav_file(config, f"{config['song_path']}/{song_b_name}", identifier='songB')
-
-    # 1. analysis songs and change bpm
 
     # 2. evaluate segments from analysis --> get transition points
     tsl_list, transition_points = evaluator.evaluate_segments(config)
