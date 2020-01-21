@@ -56,7 +56,7 @@ def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name, bpm
     frames = util.calculate_frames(config, song_a, song_b, transition_points)
 
     # print("Frames: %s" % frames)
-    # print("Transition Points: %s" % transition_points)
+    print("Transition Points: %s" % transition_points)
 
     # 3. mix both songs
     then = time.time()
