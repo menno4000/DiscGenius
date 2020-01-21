@@ -34,10 +34,10 @@ def generate_safe_mix_name(config, orig_filename, bpm):
     return new_filename
 
 
-def create_wav_from_mp3(config, filename, extension):
+def create_wav_from_audio(config, filename, extension):
     input_path = f"{config['song_path']}/{filename}"
     output_path = f"{config['song_path']}/{filename[:-(len(extension) + 1)]}.wav"
-    converter.convert_mp3_to_wav(config, input_path, output_path)
+    converter.convert_audio_to_wav(config, input_path, output_path)
 
 
 def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name, bpm):

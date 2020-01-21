@@ -49,7 +49,8 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
     save_song(config, filename, body)
 
     if not extension == "wav":
-        controller.create_wav_from_mp3(config, filename, extension)
+        controller.create_wav_from_audio(config, filename, extension)
+
         filename = filename[:-(len(extension))] + "wav"
         return {
             "filename": filename,
