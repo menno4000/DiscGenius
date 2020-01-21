@@ -38,14 +38,17 @@ def create_wav_from_audio(config, filename, extension):
     input_path = f"{config['song_path']}/{filename}"
     output_path = f"{config['song_path']}/{filename[:-(len(extension) + 1)]}.wav"
     converter.convert_audio_to_wav(config, input_path, output_path)
+    util.move_audio_to_storage(config, input_path)
 
 
 def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name, bpm):
     # --- andromeda to 86 --- C-D-E: 5:24-6:24:7:23 --- 32-32
 
     # 1. analyse songs and change bpm
+    # use config['max_bpm_diff'] to return if difference is bigger
     song_a = util.read_wav_file(config, f"{config['song_path']}/{song_a_name}", identifier='songA')
     song_b = util.read_wav_file(config, f"{config['song_path']}/{song_b_name}", identifier='songB')
+
 
     # 2. evaluate segments from analysis --> get transition points
     tsl_list, transition_points = evaluator.evaluate_segments(config)

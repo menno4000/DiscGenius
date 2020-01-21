@@ -48,6 +48,15 @@ def save_wav_file(config, list_of_frames, path):
     return path
 
 
+def move_audio_to_storage(config, filepath):
+    print("------------------------------------------------------------------------------------------------------------------------")
+    print(filepath)
+    print(config['mp3_storage'])
+    audio_file = filepath.split('/')[-1]
+    print(audio_file)
+    os.rename(filepath, f"{config['mp3_storage']}/{audio_file}")
+
+
 def get_length_out_of_frames(config, amount_of_frames):
     length_in_seconds = amount_of_frames / config['sample_rate']
     array = str(length_in_seconds / 60).split('.')

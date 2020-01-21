@@ -74,12 +74,17 @@ def get_config(content_path):
 
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
         'song_path': get_string_parameter(parser, "PATHS", 'song_path'),
+        'mp3_storage': get_string_parameter(parser, "PATHS", 'mp3_storage'),
         'mix_path': get_string_parameter(parser, "PATHS", 'mix_path'),
         'scenario_path': get_string_parameter(parser, "PATHS", 'scenario_path'),
         'ffmpeg_path': get_string_parameter(parser, "PATHS", 'ffmpeg_path'),
 
         'audio_formats': get_list_parameter(parser, "LISTS", 'audio_formats'),
         'keys_to_remove': get_list_parameter(parser, "LISTS", 'keys_to_remove'),
+
+        'max_bpm': get_int_parameter(parser, "BPM_LIMITS", 'max_bpm'),
+        'min_bpm': get_int_parameter(parser, "BPM_LIMITS", 'min_bpm'),
+        'max_bpm_diff': get_int_parameter(parser, "BPM_LIMITS", 'max_bpm_diff')
     }
     config['scenarios'] = util.get_scenarios(config, True)
     return config

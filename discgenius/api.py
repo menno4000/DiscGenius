@@ -26,7 +26,11 @@ def save_song(config, filename, song_data):
 
 def convert_bpm(bpm):
     try:
-        return float(bpm)
+        bpm = float(bpm)
+        if bpm < config['min_bpm'] or bpm > config['max_bpm']:
+            raise_exception(400, f"Please set a bpm value between {config['min_bpm']} and {config['max_bpm']}.")
+        return bpm
+
     except ValueError:
         raise_exception(400, "Please provide a number as bpm value.")
 
