@@ -5,6 +5,7 @@ from . import evaluator
 from . import mixer
 from .utility import audio_file_converter as converter
 from .utility import utility as util
+from .utility import bpmMatch
 
 
 def generate_safe_song_name(config, filename, extension, bpm):
@@ -41,13 +42,25 @@ def create_wav_from_audio(config, filename, extension):
     util.move_audio_to_storage(config, input_path)
 
 
-def mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name, bpm):
+def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name, bpm=0):
     # --- andromeda to 86 --- C-D-E: 5:24-6:24:7:23 --- 32-32
 
-    # 1. analyse songs and change bpm
-    # use config['max_bpm_diff'] to return if difference is bigger
+    # read the original wav files
     song_a = util.read_wav_file(config, f"{config['song_path']}/{song_a_name}", identifier='songA')
     song_b = util.read_wav_file(config, f"{config['song_path']}/{song_b_name}", identifier='songB')
+
+    # 1.1 match tempo of both songs before analysis
+    # if no bpm is provided, match tempo of song_b to song_a
+    if bpm == 0:
+        bpmMatch.match_bpm_first(song_a, song_a_bpm, song_b, song_b_bpm)
+    else:
+        bpmMatch.match_bpm_desired(song_a, song_a_bpm, song_b, song_b_bpm, bpm)
+    # 1.2 analyse songs
+    # use config['max_bpm_diff'] to return if difference is bigger
+
+    # TODO read the tempo-adjusted wav files
+    #song_a = util.read_wav_file(config, f"{config['song_path']}/{song_a_name}", identifier='songA')
+    #song_b = util.read_wav_file(config, f"{config['song_path']}/{song_b_name}", identifier='songB')
 
 
     # 2. evaluate segments from analysis --> get transition points
