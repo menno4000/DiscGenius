@@ -3,6 +3,7 @@ import time
 
 from . import evaluator
 from . import mixer
+from . import analysis
 from .utility import audio_file_converter as converter
 from .utility import utility as util
 from .utility import bpmMatch
@@ -42,7 +43,7 @@ def create_wav_from_audio(config, filename, extension):
     util.move_audio_to_storage(config, input_path)
 
 
-def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name, bpm=0):
+def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name, bpm=0, transition_length=8):
     # --- andromeda to 86 --- C-D-E: 5:24-6:24:7:23 --- 32-32
 
     # read the original wav files
@@ -52,19 +53,14 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
     # 1.1 match tempo of both songs before analysis
     # if no bpm is provided, match tempo of song_b to song_a
     if bpm == 0:
-        bpmMatch.match_bpm_first(song_a, song_a_bpm, song_b, song_b_bpm)
+        song_a = bpmMatch.match_bpm_first(song_a, song_a_bpm, song_b, song_b_bpm)
     else:
-        bpmMatch.match_bpm_desired(song_a, song_a_bpm, song_b, song_b_bpm, bpm)
+        song_b = bpmMatch.match_bpm_desired(song_a, song_a_bpm, song_b, song_b_bpm, bpm)
     # 1.2 analyse songs
-    # use config['max_bpm_diff'] to return if difference is bigger
-
-    # TODO read the tempo-adjusted wav files
-    #song_a = util.read_wav_file(config, f"{config['song_path']}/{song_a_name}", identifier='songA')
-    #song_b = util.read_wav_file(config, f"{config['song_path']}/{song_b_name}", identifier='songB')
-
+    transition_points = analysis.get_transition_points(config, song_a_name, song_b_name, transition_length)
 
     # 2. evaluate segments from analysis --> get transition points
-    tsl_list, transition_points = evaluator.evaluate_segments(config)
+    tsl_list, transition_points = evaluator.evaluate_segments(config, transition_points, transition_length)
 
     frames = util.calculate_frames(config, song_a, song_b, transition_points)
 

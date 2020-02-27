@@ -12,6 +12,8 @@ def match_bpm_first(song_a, tempo_a, song_b, tempo_b):
     song_b['left_channel'] = song_b_resampled[0][0]
     song_b['right_channel'] = song_b_resampled[0][1]
 
+    return song_a, song_b
+
 def match_bpm_desired(song_a, tempo_a, song_b, tempo_b, desired_tempo):
     tempo_ratio_a = desired_tempo / tempo_a
     rate_a = song_b.frame_rate
@@ -32,3 +34,5 @@ def match_bpm_desired(song_a, tempo_a, song_b, tempo_b, desired_tempo):
     song_b['frames'] = song_b_resampled[0]
     song_b['left_channel'] = song_b_resampled[0][0]
     song_b['right_channel'] = song_b_resampled[0][1]
+
+    return song_a, song_b
