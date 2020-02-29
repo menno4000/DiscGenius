@@ -18,11 +18,11 @@ def calc_euclidean_distance(stft1, stft2):
     return numpy.average(euclidean_distances)
 
 #calculates segment scores for a list of beat clips
-def score_segments(clips, bias_mode=False, segment_length):
+def score_segments(clips, segment_length, bias_mode=False):
     scores = []
-    for si in range (0, (len(clips)-segment_length)):
-        clip_stfts = [numpy.abs(librosa.stft(clips[i])) for i in range(si, (si+(segment_length-1)))]
-        score = numpy.sum([calc_euclidean_distance(clip_stfts[0], clip_stfts[i]) for i in range(1,(segment_length-1))])
+    for si in range (0, (len(clips)-int(segment_length))):
+        clip_stfts = [numpy.abs(librosa.stft(clips[i])) for i in range(si, (si+(int(segment_length)-1)))]
+        score = numpy.sum([calc_euclidean_distance(clip_stfts[0], clip_stfts[i]) for i in range(1,(int(segment_length)-1))])
 
 
         scores.append(score)

@@ -53,11 +53,11 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
     # 1.1 match tempo of both songs before analysis
     # if no bpm is provided, match tempo of song_b to song_a
     if bpm == 0:
-        song_a = bpmMatch.match_bpm_first(song_a, song_a_bpm, song_b, song_b_bpm)
+        song_a, song_b = bpmMatch.match_bpm_first(config, song_a, song_a_bpm, song_b, song_b_bpm)
     else:
-        song_b = bpmMatch.match_bpm_desired(song_a, song_a_bpm, song_b, song_b_bpm, bpm)
+        song_a, song_b = bpmMatch.match_bpm_desired(config, song_a, song_a_bpm, song_b, song_b_bpm, bpm)
     # 1.2 analyse songs
-    transition_points = analysis.get_transition_points(config, song_a_name, song_b_name, transition_length)
+    transition_points = analysis.get_transition_points(config, song_a, song_b, transition_length)
 
     # 2. evaluate segments from analysis --> get transition points
     tsl_list, transition_points = evaluator.evaluate_segments(config, transition_points, transition_length)

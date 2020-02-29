@@ -70,9 +70,11 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
 async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
               mix_name: str = Body(default=""),
               scenario_name: str = Body(default=""),
-              bpm: str = Body(default="")):
-    if song_a_name == "" or song_b_name == "" or scenario_name == "" or bpm == "":
-        raise_exception(400, "Please provide four attributes: 'song_a_name', 'song_b_name', 'scenario_name' and 'bpm'.")
+              song_a_bpm: str = Body(default=""),
+              song_b_bpm: str = Body(default=""),
+              transition_length: float = Body(default=16)):
+    if song_a_name == "" or song_b_name == "" or scenario_name == "" or mix_name == "" or song_a_bpm == "":
+        raise_exception(400, "Please provide seven attributes in JSON: 'song_a_name', 'song_b_name', 'scenario_name', 'song_a_bpm', 'song_a_bpm', 'mix_name' and 'transition_length'.")
 
     if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
             f"{config['song_path']}/{song_b_name}"):
@@ -82,10 +84,13 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if scenario_name not in SCENARIOS:
         raise_exception(400, "Transition scenario could not be found.")
 
-    bpm = convert_bpm(bpm)
+    song_a_bpm = convert_bpm(song_a_bpm)
+    song_b_bpm = convert_bpm(song_b_bpm)
 
-    mix_name = controller.generate_safe_mix_name(config, mix_name, bpm)
-    return controller.mix_two_files(config, song_a_name, song_b_name, mix_name, scenario_name, bpm)
+
+
+    mix_name = controller.generate_safe_mix_name(config, mix_name, song_a_bpm)
+    return controller.mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name, song_a_bpm, transition_length)
 
 
 @app.get("/getMix")
@@ -128,5 +133,3 @@ async def set_evaluation(tsl_list: list = Body(default=[]), transition_points: d
         raise_exception(400, "Please provide a tsl_list with two elements and the transition points a, c, d & e.")
 
     return evaluator.set_evaluation_points(tsl_list, transition_points)
-
-

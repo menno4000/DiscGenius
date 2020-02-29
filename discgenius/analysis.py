@@ -9,11 +9,14 @@ from .utility import segment_scorer as scorer
 hop_length = 512
 segment_size = 16
 
+transition_points = {}
+
+
 #calculates transition points dictionary for a transition of given between two given songs
-def get_transition_points(config, song_a_name, song_b_name, transition_length):
-    #load songs using librosa
-    signal1, rate1 = librosa.load(f"{config['song_path']}/{song_a_name}", sr=44100)
-    signal2, rate2 = librosa.load(f"{config['song_path']}/{song_b_name}", sr=44100)
+def get_transition_points(config, song_a, song_b, transition_length):
+
+    signal1, rate1 = librosa.load(f"{config['data_path']}/{song_a['name']}", sr=config['sample_rate'])
+    signal2, rate2 = librosa.load(f"{config['data_path']}/{song_b['name']}", sr=config['sample_rate'])
 
     #compute onset environments
     onset_env1 = librosa.onset.onset_strength(y=signal1, sr=rate1, aggregate=numpy.median)
@@ -57,26 +60,24 @@ def get_transition_points(config, song_a_name, song_b_name, transition_length):
         segment_times2[int(i/segment_size)] = [times2[beats2][i], times2[beats2][i+segment_size]]
 
     #score segments using segment_scorer utility class
-    segment_scores1 = scorer.score_segments(clips1, bias_mode=False, transition_length)
-    segment_scores2 = scorer.score_segments(clips2, bias_mode=True, transition_length)
+    segment_scores1 = scorer.score_segments(clips1, transition_length, False)
+    segment_scores2 = scorer.score_segments(clips2, transition_length, True)
 
     #determine best transition candidates
     best_segment_index1 = segment_scores1.index(min(segment_scores1))
     best_segment_index2 = segment_scores2.index(min(segment_scores2))
 
-    #construct transition_points dict
-    transition_points = {}
     #start of transition in song A
-    transition_points['c'] = segment_times1[best_segment_index1][0]
+    transition_points['c'] = round(segment_times1[best_segment_index1][0], 3)
     #midpoint of transition in song A
-    transition_points['d'] = segment_times1[best_segment_index1+4][0]
+    transition_points['d'] = round(segment_times1[best_segment_index1+4][0], 3)
     #end of transition in song A
-    transition_points['e'] = segment_times1[best_segment_index1+7][1]
+    transition_points['e'] = round(segment_times1[best_segment_index1+7][1], 3)
     #start of transition in song B
-    transition_points['a'] = segment_times2[best_segment_index2][0]
+    transition_points['a'] = round(segment_times2[best_segment_index2][0], 3)
     #midpoint of transition in song B
-    transition_points['b'] = segment_times2[best_segment_index2+4][0]
+    transition_points['b'] = round(segment_times2[best_segment_index2+4][0], 3)
     #end of transition in song B
-    transition_points['x'] = segment_times2[best_segment_index2+7][1]
+    transition_points['x'] = round(segment_times2[best_segment_index2+7][1], 3)
 
     return transition_points

@@ -19,7 +19,7 @@ def read_wav_file(config, filepath, duration=None, identifier=None):
     song = {'frames': librosa_load[0],
             'left_channel': librosa_load[0][0],
             'right_channel': librosa_load[0][1],
-            'frame_rate': librosa_load[1],
+            'frame_rate': config['sample_rate'],
             'path': filepath,
             'name': filepath.split('/')[len(filepath.split('/')) - 1]
             }
