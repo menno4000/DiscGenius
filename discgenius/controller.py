@@ -77,7 +77,7 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
     if mixed_song:
         mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
         if mp3_mix_name:
-            os.remove(mixed_song['path'])
+            #os.remove(mixed_song['path'])
             mixed_song['name'] = mp3_mix_name
             mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
 

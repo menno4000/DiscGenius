@@ -52,6 +52,7 @@ def get_transition_points(config, song_a, song_b, transition_length):
     for i in range(0, len(starts1)-segment_size, segment_size):
         clip = signal1[starts1[i]:stops1[i+segment_size]]
         clips1.append(clip)
+        #TODO rework
         segment_times1[int(i/segment_size)] = [times1[beats1][i], times1[beats1][i+segment_size]]
 
     for i in range(0, len(starts2)-segment_size, segment_size):
@@ -74,9 +75,9 @@ def get_transition_points(config, song_a, song_b, transition_length):
     #end of transition in song A
     transition_points['e'] = round(segment_times1[best_segment_index1+7][1], 3)
     #start of transition in song B
-    transition_points['a'] = round(segment_times2[best_segment_index2][0], 3)
+    transition_points['a'] = round(segment_times2[best_segment_index2][1], 3)
     #midpoint of transition in song B
-    transition_points['b'] = round(segment_times2[best_segment_index2+4][0], 3)
+    transition_points['b'] = round(segment_times2[best_segment_index2+4][1], 3)
     #end of transition in song B
     transition_points['x'] = round(segment_times2[best_segment_index2+7][1], 3)
 

@@ -50,7 +50,7 @@ def match_bpm_desired(config, song_a, tempo_a, song_b, tempo_b, desired_tempo):
 
     print("INFO - Matching tempos of song "+song_a['name']+" ("+str(tempo_a)+") to desired tempo "+str(desired_tempo))
     song_a_0_resampled = librosa.resample(song_a['left_channel'], rate_a, new_rate_a)
-    song_a_1_resampled = librosa.resample(song_a['right_channel'], rate_b, new_rate_a)
+    song_a_1_resampled = librosa.resample(song_a['right_channel'], rate_a, new_rate_a)
 
 
     song_a_resampled = numpy.array([song_a_0_resampled, song_a_1_resampled])

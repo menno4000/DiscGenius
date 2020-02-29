@@ -34,10 +34,10 @@ def read_wav_file(config, filepath, duration=None, identifier=None):
 
 
 def save_wav_file(config, list_of_frames, path):
-    i = 1
-    while os.path.exists(path):
-        path = f"{path[:-4]}-{i}.wav"
-        i += 1
+    # i = 1
+    # while os.path.exists(path):
+    #     path = f"{path[:-4]}-{i}.wav"
+    #     i += 1
 
     print("INFO - Saving mixed audio file to '%s'" % path)
     librosa.output.write_wav(path, list_of_frames, config['sample_rate'], norm=True)
