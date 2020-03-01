@@ -30,8 +30,8 @@ def score_segments(clips, segment_length, bias_mode=False):
     #bias pro first half if entry point is sought
     if bias_mode:
         for i in range (0, (round((len(scores)/2)))):
-            scores[i] = scores[i]*0.5
+            scores[i] = scores[i]*0.1
     else:
         for i in range((round((len(scores)/2))), len(scores)):
-            scores[i] = scores[i]*0.5
+            scores[i] = scores[i]*0.1
     return scores
