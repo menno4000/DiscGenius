@@ -13,7 +13,7 @@ transition_points = {}
 
 
 #calculates transition points dictionary for a transition of given between two given songs
-def get_transition_points(config, song_a, song_b, transition_length):
+def get_transition_points(config, song_a, song_b, transition_length, transition_midpoint):
 
     signal1 = song_a['frames']
     rate1 = song_a['frame_rate']
@@ -70,8 +70,8 @@ def get_transition_points(config, song_a, song_b, transition_length):
         segment_times2[int(i/segment_size)] = [((times_starts2[i]+times_stops2[i])/2), ((times_starts2[i+segment_size]+times_stops2[i+segment_size])/2)]
 
     #score segments using segment_scorer utility class
-    segment_scores1 = scorer.score_segments(clips1, transition_length, False)
-    segment_scores2 = scorer.score_segments(clips2, transition_length, True)
+    segment_scores1 = scorer.score_segments(clips1, transition_length, transition_midpoint, False)
+    segment_scores2 = scorer.score_segments(clips2, transition_length, transition_midpoint, True)
 
     #determine best transition candidates
     best_segment_index1 = segment_scores1.index(min(segment_scores1))

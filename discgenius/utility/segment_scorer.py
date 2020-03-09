@@ -18,20 +18,28 @@ def calc_euclidean_distance(stft1, stft2):
     return numpy.average(euclidean_distances)
 
 #calculates segment scores for a list of beat clips
-def score_segments(clips, segment_length, bias_mode=False):
+def score_segments(clips, segment_length, midpoint, bias_mode=False):
     scores = []
-    for si in range (0, (len(clips)-int(segment_length))):
-        clip_stfts = [numpy.abs(librosa.stft(clips[i])) for i in range(si, (si+(int(segment_length)-1)))]
-        score = numpy.sum([calc_euclidean_distance(clip_stfts[0], clip_stfts[i]) for i in range(1,(int(segment_length)-1))])
+    for si in range (0, (len(clips)-segment_length)):
+        clip_stfts = [numpy.abs(librosa.stft(clips[i])) for i in range(si, (si+(segment_length-1)))]
 
+        if midpoint > 2:
+            score_first = numpy.sum([calc_euclidean_distance(clip_stfts[0], clip_stfts[i]) for i in range(1, (midpoint-1))])
+            score_second = numpy.sum([calc_euclidean_distance(clip_stfts[0], clip_stfts[i]) for i in range(midpoint, (segment_length-1))])
+        else:
+            score_first = calc_euclidean_distance(clip_stfts[0], clip_stfts[1])
+            score_second = numpy.sum([calc_euclidean_distance(clip_stfts[0], clip_stfts[i]) for i in range(midpoint, (segment_length-1))])
+
+
+        score = score_first * score_second
 
         scores.append(score)
 
     #bias pro first half if entry point is sought
     if bias_mode:
-        for i in range (0, (round((len(scores)/2)))):
-            scores[i] = scores[i]*0.1
+        for i in range (int(len(scores)/2), len(scores)):
+            scores[i] = scores[i]+100
     else:
-        for i in range((round((len(scores)/2))), len(scores)):
-            scores[i] = scores[i]*0.1
+        for i in range(0, (int(len(scores)/2)-1)):
+            scores[i] = scores[i]+100
     return scores
