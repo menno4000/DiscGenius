@@ -22,7 +22,7 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     rate2 = song_b['frame_rate']
     #signal2, rate2 = librosa.load(f"{config['data_path']}/{song_b['name']}", sr=config['sample_rate'])
 
-    #compute onset environments
+    #compute onset envelopes
     onset_env1 = librosa.onset.onset_strength(y=signal1[0], sr=rate1, aggregate=numpy.median)
     onset_env2 = librosa.onset.onset_strength(y=signal2[0], sr=rate2, aggregate=numpy.median)
 
@@ -31,8 +31,8 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     times2 = librosa.times_like(onset_env2, sr=rate2, hop_length=hop_length)
 
     #compute beats using librosa beat tracking
-    tempo1, beats1 = librosa.beat.beat_track(y=signal1[0], sr=rate1)
-    tempo2, beats2 = librosa.beat.beat_track(y=signal2[0], sr=rate2)
+    tempo1, beats1 = librosa.beat.beat_track(onset_envelope=onset_env1, sr=rate1)
+    tempo2, beats2 = librosa.beat.beat_track(onset_envelope=onset_env2, sr=rate2)
 
     #create onset sample matrix from tracked beats
     onset_samples1 = list(librosa.frames_to_samples(beats1))
