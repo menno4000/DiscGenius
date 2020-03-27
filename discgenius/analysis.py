@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from .utility import segment_scorer as scorer
 
 hop_length = 512
-segment_size = 16
+clip_size = 8
 
 transition_points = {}
 
@@ -58,16 +58,16 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     segment_times1 = {}
     segment_times2 = {}
 
-    for i in range(0, (len(times_stops1)-segment_size), segment_size):
-        clip = signal1[0][starts1[i]:stops1[i+segment_size]]
+    for i in range(0, (len(times_stops1)-clip_size), clip_size):
+        clip = signal1[0][starts1[i]:stops1[i+clip_size]]
         clips1.append(clip)
         #TODO rework
-        segment_times1[int(i/segment_size)] = [((times_starts1[i]+times_stops1[i])/2), ((times_starts1[i+segment_size]+times_stops1[i+segment_size])/2)]
+        segment_times1[int(i/clip_size)] = [((times_starts1[i]+times_stops1[i])/2), ((times_starts1[i+clip_size]+times_stops1[i+clip_size])/2)]
 
-    for i in range(0, (len(times_stops2)-segment_size), segment_size):
-        clip = signal2[0][starts2[i]:stops2[i+segment_size]]
+    for i in range(0, (len(times_stops2)-clip_size), clip_size):
+        clip = signal2[0][starts2[i]:stops2[i+clip_size]]
         clips2.append(clip)
-        segment_times2[int(i/segment_size)] = [((times_starts2[i]+times_stops2[i])/2), ((times_starts2[i+segment_size]+times_stops2[i+segment_size])/2)]
+        segment_times2[int(i/clip_size)] = [((times_starts2[i]+times_stops2[i])/2), ((times_starts2[i+clip_size]+times_stops2[i+clip_size])/2)]
 
     #score segments using segment_scorer utility class
     segment_scores1 = scorer.score_segments(clips1, transition_length, transition_midpoint, False)

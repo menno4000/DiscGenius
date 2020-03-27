@@ -31,7 +31,7 @@ def score_segments(clips, segment_length, midpoint, bias_mode=False):
             score_second = numpy.sum([calc_euclidean_distance(clip_stfts[0], clip_stfts[i]) for i in range(midpoint, (segment_length-1))])
 
 
-        score = score_first * score_second
+        score = score_first + score_second
 
         scores.append(score)
 

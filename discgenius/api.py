@@ -66,17 +66,39 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
     }
 
 
+
 @app.post("/createMix")
 async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
               mix_name: str = Body(default=""),
-              scenario_name: str = Body(default=""),
+              scenario_name: str = Body(default="EQ_1.1"),
               song_a_bpm: str = Body(default=""),
               song_b_bpm: str = Body(default=""),
               transition_length: int = Body(default=16),
               transition_midpoint: int = Body(default=8)):
     if song_a_name == "" or song_b_name == "" or scenario_name == "" or mix_name == "" or song_a_bpm == "":
-        raise_exception(422, "Please provide five attributes in JSON: 'song_a_name', 'song_b_name', 'scenario_name', 'song_a_bpm', 'song_a_bpm', 'mix_name' "
-                             "You can optionally provde 'transition_length' (default 16) and 'transition_midpoint' (default) 8.")
+        raise_exception(
+            status_code = 422,
+            detail=         "Please provide four attributes in JSON: 'song_a_name', 'song_b_name', 'song_a_bpm', 'song_a_bpm' \n "
+                            "Optionally Provide mix_name (str), scenario_name (str default EQ_1.1, see below), transition_length (int default 16), midpoint (int default 8)"
+                            "Example Body:"
+                            "{   "
+                        	"   \"song_a_name\": \"<song_name_1>_120.185.wav\","
+                        	"   \"song_b_name\": \"<song_name_2>_120.185.wav\","
+                        	"   \"mix_name\": \"<song_name_1>_to_<song_name_2>\","
+                        	"   \"scenario_name\": \"EQ_1.1\","
+                        	"   \"song_a_bpm\": \"120.185\","
+                        	"   \"song_b_bpm\": \"120.185\","
+                        	"   \"transition_length\": \"12\","
+                        	"   \"transition_midpoin\": \"8\""
+                            "}"
+                            "available scenarios:"
+                            "CF_1.0  crossfade with configurable vff values"
+                            "EQ_1.0  smooth 3-band-EQ transition with bass swap"
+                            "EQ_1.1  smooth 3-band-EQ transition with bass swap and 1 bar bass cut"
+                            "EQ_2.0  'hard' transition with bass swap (\"1bar_bass_cut\": false)"
+                            "EQ_2.1  'hard' transition with bass swap (\"1bar_bass_cut\": true)"
+                            "VFF_1.0 volume fading transition with bass swap"
+                            "VFF_1.1 volume fading transition with bass swap and 1 bar bass cut")
 
     if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
             f"{config['song_path']}/{song_b_name}"):
@@ -89,7 +111,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     song_a_bpm = convert_bpm(song_a_bpm)
     song_b_bpm = convert_bpm(song_b_bpm)
 
-    mix_name = controller.generate_safe_mix_name(config, mix_name, song_a_bpm)
+    mix_name = controller.generate_safe_mix_name(config, mix_name, song_a_bpm, scenario_name)
     return controller.mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name, transition_length, transition_midpoint, 0)
 
 @app.post("/adjustTempo")

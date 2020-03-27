@@ -27,11 +27,11 @@ def generate_safe_song_name(config, filename, extension, bpm):
     return filename
 
 
-def generate_safe_mix_name(config, orig_filename, bpm):
+def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
     i = 1
-    new_filename = f"{orig_filename}_{bpm}"
+    new_filename = f"{orig_filename}_{bpm}_{scenario_name}"
     while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
-        new_filename = f"{orig_filename}-{i}_{bpm}"
+        new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}"
         i += 1
     return new_filename
 
