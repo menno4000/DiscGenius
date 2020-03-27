@@ -5,3 +5,4 @@ matplotlib
 ffmpeg
 fastapi[all]
 uvicorn
+aubio

@@ -9,6 +9,7 @@ import os
 from os.path import isfile, join
 
 import librosa
+import numpy
 
 
 def read_wav_file(config, filepath, duration=None, identifier=None):
@@ -17,8 +18,8 @@ def read_wav_file(config, filepath, duration=None, identifier=None):
 
     librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
     song = {'frames': librosa_load[0],
-            'left_channel': librosa_load[0][0],
-            'right_channel': librosa_load[0][1],
+            'left_channel': numpy.asfortranarray(librosa_load[0][0]),
+            'right_channel': numpy.asfortranarray(librosa_load[0][1]),
             'frame_rate': config['sample_rate'],
             'path': filepath,
             'name': filepath.split('/')[len(filepath.split('/')) - 1]

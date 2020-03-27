@@ -1,6 +1,8 @@
 import os
 import time
 
+import librosa
+
 from . import evaluator
 from . import mixer
 from . import analysis
@@ -56,8 +58,12 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
         song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_first(config, song_a, song_a_bpm, song_b, song_b_bpm)
     else:
         song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_desired(config, song_a, song_a_bpm, song_b, song_b_bpm, bpm)
+
     # 1.2 analyse songs
+    then = time.time()
     transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted, transition_length, transition_midpoint)
+    now = time.time()
+    print("INFO - Analysing file took: %0.1f seconds" % (now - then))
 
     # 2. evaluate segments from analysis --> get transition points
     tsl_list, transition_points = evaluator.evaluate_segments(config, transition_points, transition_length)
@@ -66,6 +72,8 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
 
     # print("Frames: %s" % frames)
     print("Transition Points: %s" % transition_points)
+    print(f"Transition interval lengths (C-D-E): {transition_points['d']-transition_points['c']}, {transition_points['e']-transition_points['d']}")
+    print(f"Transition interval lengths (A-B-X): {transition_points['b']-transition_points['a']}, {transition_points['x']-transition_points['b']}")
 
     # 3. mix both songs
     then = time.time()
@@ -74,12 +82,12 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
     print("INFO - Mixing file took: %0.1f seconds" % (now - then))
 
     # 4. convert to mp3
-    if mixed_song:
-        mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
-        if mp3_mix_name:
-            #os.remove(mixed_song['path'])
-            mixed_song['name'] = mp3_mix_name
-            mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
+    #if mixed_song:
+    #    mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
+    #    if mp3_mix_name:
+    #        #os.remove(mixed_song['path'])
+    #        mixed_song['name'] = mp3_mix_name
+    #        mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
 
     # 5. export json data
     scenario_data = util.get_scenario(config, scenario_name)

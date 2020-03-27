@@ -1,10 +1,9 @@
 import librosa
 import librosa.display
-from scipy.spatial import distance
 import numpy
-import matplotlib.pyplot as plt
 
 from .utility import segment_scorer as scorer
+from .utility import aubio
 
 hop_length = 512
 clip_size = 8
@@ -12,83 +11,62 @@ clip_size = 8
 transition_points = {}
 
 
-#calculates transition points dictionary for a transition of given between two given songs
+# calculates transition points dictionary for a transition of given between two given songs
 def get_transition_points(config, song_a, song_b, transition_length, transition_midpoint):
+    print(f"INFO - Transition length: {transition_length}, transition midpoint: {transition_midpoint}")
 
-    signal1 = song_a['frames']
-    rate1 = song_a['frame_rate']
+    signal_a = song_a['left_channel']
+    sample_rate = song_a['frame_rate']
 
-    signal2 = song_b['frames']
-    rate2 = song_b['frame_rate']
-    #signal2, rate2 = librosa.load(f"{config['data_path']}/{song_b['name']}", sr=config['sample_rate'])
+    signal_b = song_b['left_channel']
+    # signal2, rate2 = librosa.load(f"{config['data_path']}/{song_b['name']}", sr=config['sample_rate'])
 
-    #compute onset envelopes
-    onset_env1 = librosa.onset.onset_strength(y=signal1[0], sr=rate1, aggregate=numpy.median)
-    onset_env2 = librosa.onset.onset_strength(y=signal2[0], sr=rate2, aggregate=numpy.median)
+    print("INFO - Analysis: beat detection for both songs")
 
-    #derive time for sample index from onset environments
-    times1 = librosa.times_like(onset_env1, sr=rate1, hop_length=hop_length)
-    times2 = librosa.times_like(onset_env2, sr=rate2, hop_length=hop_length)
 
-    #compute beats using librosa beat tracking
-    tempo1, beats1 = librosa.beat.beat_track(onset_envelope=onset_env1, sr=rate1)
-    tempo2, beats2 = librosa.beat.beat_track(onset_envelope=onset_env2, sr=rate2)
+    aubio_beats_a, bpm_a = aubio.aubio_beat_tracking(song_a['path'], sample_rate)
+    aubio_beats_b, bpm_b = aubio.aubio_beat_tracking(song_b['path'], sample_rate)
 
-    #create onset sample matrix from tracked beats
-    onset_samples1 = list(librosa.frames_to_samples(beats1))
-    onset_samples1 = numpy.concatenate(onset_samples1, len(signal1[0]))
-    onset_samples2 = list(librosa.frames_to_samples(beats2))
-    onset_samples2 = numpy.concatenate(onset_samples2, len(signal2[0]))
-
-    #derive frame index of beat starts/stops from onset sample matrix
-    starts1 = onset_samples1[0:-1]
-    stops1 = onset_samples1[1:]
-    starts2 = onset_samples2[0:-1]
-    stops2 = onset_samples2[1:]
-
-    times_starts1 = librosa.samples_to_time(starts1, sr=rate1)
-    times_stops1 = librosa.samples_to_time(stops1, sr=rate1)
-    times_starts2 = librosa.samples_to_time(starts2, sr=rate1)
-    times_stops2 = librosa.samples_to_time(stops2, sr=rate1)
-
-    #split song into clip segments of even number of consecutive beats
-    clips1 = []
-    clips2 = []
+    # split song into clip segments of even number of consecutive beats
+    clips_a = []
+    clips_b = []
 
     segment_times1 = {}
     segment_times2 = {}
 
-    for i in range(0, (len(times_stops1)-clip_size), clip_size):
-        clip = signal1[0][starts1[i]:stops1[i+clip_size]]
-        clips1.append(clip)
-        #TODO rework
-        segment_times1[int(i/clip_size)] = [((times_starts1[i]+times_stops1[i])/2), ((times_starts1[i+clip_size]+times_stops1[i+clip_size])/2)]
+    print("INFO - Analysis: Finding transition points.")
+    for i in range(0, (len(aubio_beats_a) - (transition_length * clip_size)), 1):
+        start = int(aubio_beats_a[i]*sample_rate)
+        stop = int(aubio_beats_a[i + clip_size]*sample_rate)
+        #print(start, stop)
+        clip = signal_a[start:stop]
+        clips_a.append(clip)
+        segment_times1[i] = [(aubio_beats_a[i]), (aubio_beats_a[i + (transition_midpoint * int(clip_size / 2))]),
+                             (aubio_beats_a[i + (transition_midpoint * clip_size)])]
 
-    for i in range(0, (len(times_stops2)-clip_size), clip_size):
-        clip = signal2[0][starts2[i]:stops2[i+clip_size]]
-        clips2.append(clip)
-        segment_times2[int(i/clip_size)] = [((times_starts2[i]+times_stops2[i])/2), ((times_starts2[i+clip_size]+times_stops2[i+clip_size])/2)]
+    for i in range(0, (len(aubio_beats_b) - (transition_length * clip_size)), 1):
+        start = int(aubio_beats_b[i]*sample_rate)
+        stop = int(aubio_beats_b[i + clip_size]*sample_rate)
+        clip = signal_b[start:stop]
+        clips_b.append(clip)
+        segment_times2[i] = [(aubio_beats_b[i]), (aubio_beats_b[i + (transition_midpoint * int(clip_size / 2))]),
+                             (aubio_beats_b[i + (transition_midpoint * clip_size)])]
 
-    #score segments using segment_scorer utility class
-    segment_scores1 = scorer.score_segments(clips1, transition_length, transition_midpoint, False)
-    segment_scores2 = scorer.score_segments(clips2, transition_length, transition_midpoint, True)
 
-    #determine best transition candidates
+    # score segments using segment_scorer utility class
+    segment_scores1 = scorer.score_segments(clips_a, transition_length, transition_midpoint, False)
+    segment_scores2 = scorer.score_segments(clips_b, transition_length, transition_midpoint, True)
+
+    # determine best transition candidates
     best_segment_index1 = segment_scores1.index(min(segment_scores1))
     best_segment_index2 = segment_scores2.index(min(segment_scores2))
 
-    #start of transition in song A
-    #start of transition in song A
-    transition_points['c'] = ((segment_times1[best_segment_index1][0]+segment_times1[best_segment_index1][1])/2)
-    #midpoint of transition in song A
-    transition_points['d'] = ((segment_times1[best_segment_index1+3][0]+segment_times1[best_segment_index1+3][1])/2)
-    #end of transition in song A
-    transition_points['e'] = ((segment_times1[best_segment_index1+7][0]+segment_times1[best_segment_index1+7][1])/2)
-    #start of transition in song B
-    transition_points['a'] = ((segment_times2[best_segment_index2][0]+segment_times2[best_segment_index2][1])/2)
-    #midpoint of transition in song B
-    transition_points['b'] = ((segment_times2[best_segment_index2+3][0]+segment_times2[best_segment_index2+3][1])/2)
-    #end of transition in song B
-    transition_points['x'] = ((segment_times2[best_segment_index2+7][0]+segment_times2[best_segment_index2+7][1])/2)
+    transition_points['c'] = segment_times1[best_segment_index1][0]
+    transition_points['d'] = segment_times1[best_segment_index1][1]
+    transition_points['e'] = segment_times1[best_segment_index1][2]
+
+    transition_points['a'] = segment_times2[best_segment_index2][0]
+    transition_points['b'] = segment_times2[best_segment_index2][1]
+    transition_points['x'] = segment_times2[best_segment_index2][2]
 
     return transition_points
