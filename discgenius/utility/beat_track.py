@@ -1,3 +1,6 @@
+from .sound_manipulation import high_cut_filter
+from .utility import read_wav_file, save_wav_file
+
 import numpy
 import aubio
 import librosa
@@ -47,6 +50,18 @@ def aubio_beat_tracking(filepath, sample_rate, win_s=512):
     return beats, bpm
 
 
+def aubio_beat_track_with_lpf_before(config, filepath, sample_rate, win_s=512, freq=250):
+    song = read_wav_file(config, filepath, debug_info=False)
+
+    # modify signal with low pass filter
+    left_channel = high_cut_filter(song['left_channel'], order=3, freq=freq)
+    right_channel = high_cut_filter(song['right_channel'], order=3, freq=freq)
+
+    new_filepath = f"{config['song_path']}/audio_highs_cutted.wav"
+    save_wav_file(config, numpy.array([left_channel, right_channel], dtype='float32', order='F'), new_filepath, debug_info=False)
+    return aubio_beat_tracking(new_filepath, sample_rate, win_s=win_s)
+
+
 def librosa_beat_tracking(signal, sample_rate):
     # compute onset envelopes
     onset_env = librosa.onset.onset_strength(y=signal, sr=sample_rate, aggregate=numpy.median)
@@ -82,4 +97,8 @@ def librosa_beat_tracking(signal, sample_rate):
 
     return times_starts, times_stops
 
+
+def librosa_beat_tracking_with_mono_signal(config, song):
+    mono_song = read_wav_file(config, song['path'], debug_info=False, mono=True)
+    return librosa_beat_tracking(mono_song['frames'], config['sample_rate'])
 

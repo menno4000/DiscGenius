@@ -18,9 +18,9 @@ SAMPLE_RATE = common.get_config('content.ini')['sample_rate']
 ################################################################ filter types ################################################################
 
 
-def high_cut_filter(data, order=5):
+def high_cut_filter(data, order=5, freq=2000):
     type = 'low'
-    cutoff = 2000
+    cutoff = freq
 
     nyq = 0.5 * SAMPLE_RATE
     normal_cutoff = cutoff / nyq
@@ -29,9 +29,9 @@ def high_cut_filter(data, order=5):
     return frames.astype('float32')
 
 
-def low_cut_filter(data, order=5):
+def low_cut_filter(data, order=5, freq=200):
     type = 'high'
-    cutoff = 200
+    cutoff = freq
 
     nyq = 0.5 * SAMPLE_RATE
     normal_cutoff = cutoff / nyq

@@ -12,37 +12,53 @@ import librosa
 import numpy
 
 
-def read_wav_file(config, filepath, duration=None, identifier=None):
+def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True, mono=False):
     # alternatives: soundfile, wav, sciPy, pydub
-    print("INFO - Reading song '%s'" % filepath)
+    if debug_info:
+        print("INFO - Reading song '%s'" % filepath)
 
-    librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
-    song = {'frames': librosa_load[0],
-            'left_channel': numpy.asfortranarray(librosa_load[0][0]),
-            'right_channel': numpy.asfortranarray(librosa_load[0][1]),
-            'frame_rate': config['sample_rate'],
-            'path': filepath,
-            'name': filepath.split('/')[len(filepath.split('/')) - 1]
-            }
+    librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=mono, duration=duration)
+    if not mono:
+        song = {'frames': librosa_load[0],
+                'left_channel': numpy.asfortranarray(librosa_load[0][0]),
+                'right_channel': numpy.asfortranarray(librosa_load[0][1]),
+                'frame_rate': config['sample_rate'],
+                'path': filepath,
+                'name': filepath.split('/')[len(filepath.split('/')) - 1]
+                }
+        song['total_frames'] = len(song['frames'][0])
+
+    if mono:
+        song = {'frames': librosa_load[0],
+                'frame_rate': config['sample_rate'],
+                'path': filepath,
+                'name': filepath.split('/')[len(filepath.split('/')) - 1]
+                }
+        song['total_frames'] = len(song['frames'])
+
     if identifier:
         song['identifier'] = identifier
-    song['total_frames'] = len(song['frames'][0])
     song['length'] = get_length_out_of_frames(config, song['total_frames'])
 
-    print("INFO - Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
+    if debug_info:
+        print("INFO - Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
         song['frame_rate'], song['total_frames'], song['length']))
+
     return song
 
 
-def save_wav_file(config, list_of_frames, path):
+def save_wav_file(config, list_of_frames, path, debug_info=True):
     # i = 1
     # while os.path.exists(path):
     #     path = f"{path[:-4]}-{i}.wav"
     #     i += 1
-
-    print("INFO - Saving mixed audio file to '%s'" % path)
+    if debug_info:
+        print("INFO - Saving mixed audio file to '%s'" % path)
     librosa.output.write_wav(path, list_of_frames, config['sample_rate'], norm=True)
-    print("SUCCESS - Finished saving.")
+
+    if debug_info:
+        print("SUCCESS - Finished saving.")
+
     # sf.write(path, list_of_frames, samplerate, subtype='FLOAT', format='WAV')
     # scipy.io.wavfile.write(path, samplerate, list_of_frames)
 
@@ -50,7 +66,8 @@ def save_wav_file(config, list_of_frames, path):
 
 
 def move_audio_to_storage(config, filepath):
-    print("------------------------------------------------------------------------------------------------------------------------")
+    print(
+        "------------------------------------------------------------------------------------------------------------------------")
     print(filepath)
     print(config['mp3_storage'])
     audio_file = filepath.split('/')[-1]

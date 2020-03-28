@@ -22,11 +22,27 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     # signal2, rate2 = librosa.load(f"{config['data_path']}/{song_b['name']}", sr=config['sample_rate'])
 
     print("INFO - Analysis: Beat detection for both songs.")
-    times_of_beats_a, bpm_a = beat_track.aubio_beat_tracking(song_a['path'], sample_rate)
-    times_of_beats_b, bpm_b = beat_track.aubio_beat_tracking(song_b['path'], sample_rate)
 
+    # aubio
+    #times_of_beats_a, bpm_a = beat_track.aubio_beat_tracking(song_a['path'], sample_rate)
+    #times_of_beats_b, bpm_b = beat_track.aubio_beat_tracking(song_b['path'], sample_rate)
+
+    # aubio with lpf before
+    #times_of_beats_a, bpm_a = beat_track.aubio_beat_track_with_lpf_before(config, song_a['path'], sample_rate)
+    #times_of_beats_b, bpm_b = beat_track.aubio_beat_track_with_lpf_before(config, song_b['path'], sample_rate)
+
+    #print()
+    #print(times_of_beats_a[50:100])
+    #print(lpf_beats[50:100])
+
+    # librosa with start times
     #times_of_beats_a, stop_times_of_beats_a = beat_track.librosa_beat_tracking(signal_a, sample_rate)
     #times_of_beats_b, stop_times_of_beats_b = beat_track.librosa_beat_tracking(signal_b, sample_rate)
+
+    # librosa with mono signal input
+    times_of_beats_a, stop_times_of_beats_a = beat_track.librosa_beat_tracking_with_mono_signal(config, song_a)
+    times_of_beats_b, stop_times_of_beats_b = beat_track.librosa_beat_tracking_with_mono_signal(config, song_b)
+
 
     # split song into clip segments of even number of consecutive beats
     clips_a = []
