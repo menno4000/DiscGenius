@@ -58,16 +58,17 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     segment_times1 = {}
     segment_times2 = {}
 
-    for i in range(0, (len(times_stops1)-clip_size), clip_size):
+
+    for i in range(0, (len(times_stops1)-(transition_length*clip_size)), 1):
         clip = signal1[0][starts1[i]:stops1[i+clip_size]]
         clips1.append(clip)
         #TODO rework
-        segment_times1[int(i/clip_size)] = [((times_starts1[i]+times_stops1[i])/2), ((times_starts1[i+clip_size]+times_stops1[i+clip_size])/2)]
+        segment_times1[i] = [(times_stops1[i]), (times_stops1[i+(transition_midpoint*int(clip_size/2))]), (times_stops1[i+(transition_midpoint*clip_size)])]
 
-    for i in range(0, (len(times_stops2)-clip_size), clip_size):
+    for i in range(0, (len(times_stops2)-(transition_length*clip_size)), 1):
         clip = signal2[0][starts2[i]:stops2[i+clip_size]]
         clips2.append(clip)
-        segment_times2[int(i/clip_size)] = [((times_starts2[i]+times_stops2[i])/2), ((times_starts2[i+clip_size]+times_stops2[i+clip_size])/2)]
+        segment_times2[i] = [(times_stops2[i]), (times_stops2[i+(transition_midpoint*int(clip_size/2))]), (times_stops2[i+(transition_midpoint*clip_size)])]
 
     #score segments using segment_scorer utility class
     segment_scores1 = scorer.score_segments(clips1, transition_length, transition_midpoint, False)
@@ -79,16 +80,16 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
 
     #start of transition in song A
     #start of transition in song A
-    transition_points['c'] = ((segment_times1[best_segment_index1][0]+segment_times1[best_segment_index1][1])/2)
+    transition_points['c'] = segment_times1[best_segment_index1][0]
     #midpoint of transition in song A
-    transition_points['d'] = ((segment_times1[best_segment_index1+3][0]+segment_times1[best_segment_index1+3][1])/2)
+    transition_points['d'] = segment_times1[best_segment_index1][1]
     #end of transition in song A
-    transition_points['e'] = ((segment_times1[best_segment_index1+7][0]+segment_times1[best_segment_index1+7][1])/2)
+    transition_points['e'] = segment_times1[best_segment_index1][2]
     #start of transition in song B
-    transition_points['a'] = ((segment_times2[best_segment_index2][0]+segment_times2[best_segment_index2][1])/2)
+    transition_points['a'] = segment_times2[best_segment_index2][0]
     #midpoint of transition in song B
-    transition_points['b'] = ((segment_times2[best_segment_index2+3][0]+segment_times2[best_segment_index2+3][1])/2)
+    transition_points['b'] = segment_times2[best_segment_index2][1]
     #end of transition in song B
-    transition_points['x'] = ((segment_times2[best_segment_index2+7][0]+segment_times2[best_segment_index2+7][1])/2)
+    transition_points['x'] = segment_times2[best_segment_index2][2]
 
     return transition_points
