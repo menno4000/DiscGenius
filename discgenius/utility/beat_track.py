@@ -42,7 +42,9 @@ def aubio_beat_tracking(filepath, sample_rate, win_s=512):
         total_frames += read
         if read < hop_s: break
 
-    return beats, aubio_beats_to_bpm(beats)
+    bpm = aubio_beats_to_bpm(beats)
+    print(f"INFO - Analysis: Aubio beat detection finished. BPM of song: {bpm}, amount of beats found: {len(beats)}")
+    return beats, bpm
 
 
 def librosa_beat_tracking(signal, sample_rate):
@@ -75,6 +77,8 @@ def librosa_beat_tracking(signal, sample_rate):
     #print(f"stops: {stops[:10]}")
     #print(f"times_starts: {times_starts[:10]}")
     #print(f"times_stops: {times_stops[:10]}")
+
+    print(f"INFO - Analysis: Librosa beat detection finished. BPM of song: {tempo}, amount of beats found: {len(beats)}")
 
     return times_starts, times_stops
 
