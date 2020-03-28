@@ -11,7 +11,7 @@ def convert_wav_to_mp3(config, input_path, output_path):
     os.system(cmd)
 
 
-def convert_mp3_to_wav(config, input_path, output_path):
+def convert_audio_to_wav(config, input_path, output_path):
     cmd = f"{config['ffmpeg_path']}/ffmpeg -i \"{input_path}\" \"{output_path}\""
     os.system(cmd)
 

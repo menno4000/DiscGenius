@@ -32,16 +32,17 @@ GET /songs       -   See all available songs on the server which you can use to 
 GET /mixes       -   See all available mixes on the server which you can download.
 GET /scenarios   -   See all available scenarios that you can chose from to create a mix.
 
-POST /upload     -   Upload a song to the server. Required query parameters: 'filename' & 'extension'
-                 -   Example: localhost:9001/upload?filename=Dusty Kid - Sysma (Original Mix).wav&extension=wav
+POST /upload     -   Upload a song to the server. Required query parameters: 'filename', 'extension' & 'bpm'. The 'filename' should not contain the audio format.
+                 -   Example: localhost:9001/upload?filename=Dusty Kid - Sysma (Original Mix)&extension=wav&bpm=128.0
 
-POST /createMix  -   Start the process of analysing and mixing two given songs. Required body parameters: 'song_a_name', 'song_b_name', 'scenario_name'. Optional parameters: 'mix_name'.
+POST /createMix  -   Start the process of analysing and mixing two given songs. Required body parameters: 'song_a_name', 'song_b_name', 'scenario_name' and 'bpm'. Optional parameters: 'mix_name'.
                  -   Example body: 
                      {
                      	"song_a_name": "Dok & Martin - Andromeda (Original Mix).wav",
                      	"song_b_name": "Hell Driver - 86 (Original Mix).wav",
-                     	"scenario_name": "CF_1.0",
-                     	"mix_name": "andromeda_to_86_cf_1.0"
+                     	"scenario_name": "EQ_1.1",
+                     	"mix_name": "andromeda_to_86_eq_1.1",
+                        "bpm": 130.0
                      }
 
 GET /getMix      -   Download a created mix. Required query param: 'name'.
