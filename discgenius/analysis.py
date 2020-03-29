@@ -6,7 +6,7 @@ from .utility import segment_scorer as scorer
 from .utility import beat_track
 
 hop_length = 512
-clip_size = 4 # amount of beats that a clip size will be. these clips will be compared. reasonable values: 1, 4, 8
+clip_size = 8 # amount of beats that a clip size will be. these clips will be compared. reasonable values: 1, 4, 8
 step_size = 1 # the smaller the better outcome, but higher load
 
 transition_points = {}
@@ -56,10 +56,6 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     # librosa with mono signal input --> best results
     times_of_beats_a, stop_times_of_beats_a = beat_track.librosa_beat_tracking_with_mono_signal(config, song_a)
     times_of_beats_b, stop_times_of_beats_b = beat_track.librosa_beat_tracking_with_mono_signal(config, song_b)
-    print(f"times of beats for A: {times_of_beats_a[0]} --- {times_of_beats_a[-1]}")
-    print(f"A: special beat 666: {times_of_beats_a[666]}")
-    print(f"B: special beat 87: {times_of_beats_b[87]}")
-
 
     # split song into clip segments of even number of consecutive beats
     print("INFO - Analysis: Creating segments for comparison.")
