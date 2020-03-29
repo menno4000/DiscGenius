@@ -159,10 +159,12 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
 
     json_data['scenario'] = scenario_data
     json_data['transitions'] = {}
+    json_data['clip_size'] = config['clip_size']
+    json_data['step_size'] = config['step_size']
 
     # transition segment 1
     transition_segment = {
-        'length_in_bars': tsl_list[0],
+        'length_in_beats': tsl_list[0],
         'length_in_seconds': round(transition_points['d'] - transition_points['c'], 3),
         'transition_points_in_seconds': {
             'start_at_A': transition_points['c'],

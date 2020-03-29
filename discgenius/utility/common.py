@@ -76,6 +76,8 @@ def get_config(content_path):
         'mp3_bitrate': get_int_parameter(parser, section, 'mp3_bitrate'),
         'stereo': get_boolean_parameter(parser, section, 'stereo'),
         'mix_area': get_float_parameter(parser, section, 'mix_area'),
+        'clip_size': get_int_parameter(parser, section, 'clip_size'),
+        'step_size': get_int_parameter(parser, section, 'step_size'),
 
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
         'song_path': get_string_parameter(parser, "PATHS", 'song_path'),

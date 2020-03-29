@@ -70,12 +70,11 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
 @app.post("/createMix")
 async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
               mix_name: str = Body(default=""),
-              scenario_name: str = Body(default="EQ_1.1"),
-              song_a_bpm: str = Body(default=""),
-              song_b_bpm: str = Body(default=""),
-              transition_length: int = Body(default=16),
-              transition_midpoint: int = Body(default=8)):
-    if song_a_name == "" or song_b_name == "" or scenario_name == "" or mix_name == "" or song_a_bpm == "":
+              scenario_name: str = Body(default="EQ_1.0"),
+              bpm: int = Body(default=0),
+              transition_length: int = Body(default=32),
+              transition_midpoint: int = Body(default=-1337)):
+    if song_a_name == "" or song_b_name == "" or scenario_name == "" or mix_name == "":
         raise_exception(
             status_code=422,
             detail="Please provide four attributes in JSON: 'song_a_name', 'song_b_name', 'song_a_bpm', 'song_a_bpm' \n "
@@ -108,14 +107,26 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
 
-    # todo: remove params and use filename for bpm, add body param for desired bpm
-    song_a_bpm = convert_bpm(song_a_bpm)
-    song_b_bpm = convert_bpm(song_b_bpm)
+    if transition_length < 2:
+        raise_exception(400, "Transition length should be greater then one.")
+    if transition_midpoint == 1337:
+        transition_midpoint = transition_length / 2
+    if transition_midpoint > transition_length or transition_midpoint < 0:
+        raise_exception(400, f"Transition midpoint should be between zero and given transition length ({transition_length}).")
 
-    mix_name = controller.generate_safe_mix_name(config, mix_name, song_a_bpm, scenario_name)
+    # todo: remove params and use filename for bpm, add body param for desired bpm
+    bpm_a = convert_bpm(song_a_name.split('_')[-1].split('.')[0])
+    bpm_b = convert_bpm(song_b_name.split('_')[-1].split('.')[0])
+    desired_bpm = convert_bpm(bpm)
+
+    if abs(bpm_a-bpm_b) > config['max_bpm_diff']:
+        raise_exception(400, f"Please use songs that have similar BPM. Max diff is {config['max_bpm_diff']}")
+    if abs(bpm_a-desired_bpm) > config['max_bpm_diff'] or abs(bpm_b-desired_bpm) > config['max_bpm_diff']:
+        raise_exception(400, f"Please use a different value for your desired BPM. Max diff is {config['max_bpm_diff']}")
+
+    mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
     mix_name = f"{mix_name}_{transition_midpoint}-{transition_length-transition_midpoint}"
-    return controller.mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name,
-                                    transition_length, transition_midpoint, 0)
+    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_length, transition_midpoint)
 
 
 @app.post("/adjustTempo")

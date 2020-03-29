@@ -32,10 +32,14 @@ async def calculate_similarity_scores(si, clip_stfts, step_size, clip_size, midp
     return ratio
 
 
-def calculate_scores(stfts_clips, areas, clip_size, step_size, transition_length, midpoint, boundaries):
+def calculate_scores(config, stfts_clips, areas, boundaries):
     # dummy scores to skip last two thirds
     scores = numpy.full(len(areas), 1000)
 
+    clip_size = config['clip_size']
+    step_size = config['step_size']
+    transition_length = config['transition_length']
+    midpoint = config['transition_midpoint']
     transition_segment_length_1 = midpoint
     transition_segment_length_2 = transition_length - midpoint
 
@@ -48,7 +52,7 @@ def calculate_scores(stfts_clips, areas, clip_size, step_size, transition_length
 
 
 # calculates segment scores for a list of beat clips
-def score_segments(config, clips, areas, transition_length, midpoint, clip_size, step_size, bias_mode=False):
+def score_segments(config, clips, areas, bias_mode=False):
     mix_area_a = config['mix_area']
     mix_area_b = 1 - mix_area_a
 
@@ -67,5 +71,5 @@ def score_segments(config, clips, areas, transition_length, midpoint, clip_size,
     print(f"\t\t Amount of areas: {len(areas)}, amount of clips: {len(clips)}, mix area value: {mix_area_a}.")
     print(f"\t\t Running {iterations} iterations, using indexes {boundaries[0]} - {boundaries[1]}.")
 
-    scores = calculate_scores(clip_stfts, areas, clip_size, step_size, transition_length, midpoint, boundaries)
+    scores = calculate_scores(config, clip_stfts, areas, boundaries)
     return scores

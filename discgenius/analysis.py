@@ -6,15 +6,17 @@ from .utility import segment_scorer as scorer
 from .utility import beat_track
 
 hop_length = 512
-clip_size = 8 # amount of beats that a clip size will be. these clips will be compared. reasonable values: 1, 4, 8
-step_size = 1 # the smaller the better outcome, but higher load
 
 transition_points = {}
 
 
-def segment_song(config, signal, times_of_beats, clip_size, step_size, transition_length, transition_midpoint):
+def segment_song(config, signal, times_of_beats):
     clips = []
     areas = {}
+    clip_size = config['clip_size']
+    step_size = config['step_size']
+    transition_length = config['transition_length']
+    transition_midpoint = config['transition_midpoint']
     sample_rate = config['sample_rate']
     amount_of_areas = len(times_of_beats) - transition_length - clip_size
 
@@ -35,7 +37,7 @@ def segment_song(config, signal, times_of_beats, clip_size, step_size, transitio
 
 
 # calculates transition points dictionary for a transition of given between two given songs
-def get_transition_points(config, song_a, song_b, transition_length, transition_midpoint):
+def get_transition_points(config, song_a, song_b):
     mono_signal_a = song_a['mono']
     mono_signal_b = song_b['mono']
 
@@ -59,12 +61,12 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
 
     # split song into clip segments of even number of consecutive beats
     print("INFO - Analysis: Creating segments for comparison.")
-    areas_a, clips_a = segment_song(config, mono_signal_a, times_of_beats_a, clip_size, step_size, transition_length, transition_midpoint)
-    areas_b, clips_b = segment_song(config, mono_signal_b, times_of_beats_b, clip_size, step_size, transition_length, transition_midpoint)
+    areas_a, clips_a = segment_song(config, mono_signal_a, times_of_beats_a)
+    areas_b, clips_b = segment_song(config, mono_signal_b, times_of_beats_b)
 
     # score segments using segment_scorer utility class
-    segment_scores_a = scorer.score_segments(config, clips_a, areas_a, transition_length, transition_midpoint, clip_size, step_size, bias_mode=False)
-    segment_scores_b = scorer.score_segments(config, clips_b, areas_b, transition_length, transition_midpoint, clip_size, step_size, bias_mode=True)
+    segment_scores_a = scorer.score_segments(config, clips_a, areas_a, bias_mode=False)
+    segment_scores_b = scorer.score_segments(config, clips_b, areas_b, bias_mode=True)
 
     #print(f"segment scores: length of 1: {len(segment_scores_a)}, 2: {len(segment_scores_b)}")
 
