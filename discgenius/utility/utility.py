@@ -50,9 +50,6 @@ def save_wav_file(config, list_of_frames, path, debug_info=True):
         print("INFO - Saving mixed audio file to '%s'" % path)
     librosa.output.write_wav(path, list_of_frames, config['sample_rate'], norm=True)
 
-    if debug_info:
-        print("SUCCESS - Finished saving.")
-
     # sf.write(path, list_of_frames, samplerate, subtype='FLOAT', format='WAV')
     # scipy.io.wavfile.write(path, samplerate, list_of_frames)
 

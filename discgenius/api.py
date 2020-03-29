@@ -113,6 +113,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     song_b_bpm = convert_bpm(song_b_bpm)
 
     mix_name = controller.generate_safe_mix_name(config, mix_name, song_a_bpm, scenario_name)
+    mix_name = f"{mix_name}_{transition_midpoint}-{transition_length-transition_midpoint}"
     return controller.mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name,
                                     transition_length, transition_midpoint, 0)
 

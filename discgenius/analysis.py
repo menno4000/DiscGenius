@@ -6,7 +6,7 @@ from .utility import segment_scorer as scorer
 from .utility import beat_track
 
 hop_length = 512
-clip_size = 4 # amount of beats that a clips size will be. these clips will be compared. reasonable values: 1, 4, 8
+clip_size = 4 # amount of beats that a clip size will be. these clips will be compared. reasonable values: 1, 4, 8
 step_size = 1 # the smaller the better outcome, but higher load
 
 transition_points = {}
@@ -16,7 +16,7 @@ def segment_song(config, signal, times_of_beats, clip_size, step_size, transitio
     clips = []
     areas = {}
     sample_rate = config['sample_rate']
-    amount_of_areas = len(times_of_beats) - transition_length
+    amount_of_areas = len(times_of_beats) - transition_length - clip_size
 
     for i in range(0, len(times_of_beats)-clip_size):
         # create possible areas for transition
@@ -56,6 +56,9 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     # librosa with mono signal input --> best results
     times_of_beats_a, stop_times_of_beats_a = beat_track.librosa_beat_tracking_with_mono_signal(config, song_a)
     times_of_beats_b, stop_times_of_beats_b = beat_track.librosa_beat_tracking_with_mono_signal(config, song_b)
+    print(f"times of beats for A: {times_of_beats_a[0]} --- {times_of_beats_a[-1]}")
+    print(f"A: special beat 666: {times_of_beats_a[666]}")
+    print(f"B: special beat 87: {times_of_beats_b[87]}")
 
 
     # split song into clip segments of even number of consecutive beats
@@ -63,7 +66,6 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     areas_a, clips_a = segment_song(config, mono_signal_a, times_of_beats_a, clip_size, step_size, transition_length, transition_midpoint)
     areas_b, clips_b = segment_song(config, mono_signal_b, times_of_beats_b, clip_size, step_size, transition_length, transition_midpoint)
 
-    print("INFO - Analysis: Finding best segments.")
     # score segments using segment_scorer utility class
     segment_scores_a = scorer.score_segments(config, clips_a, areas_a, transition_length, transition_midpoint, clip_size, step_size, bias_mode=False)
     segment_scores_b = scorer.score_segments(config, clips_b, areas_b, transition_length, transition_midpoint, clip_size, step_size, bias_mode=True)
@@ -71,10 +73,10 @@ def get_transition_points(config, song_a, song_b, transition_length, transition_
     #print(f"segment scores: length of 1: {len(segment_scores_a)}, 2: {len(segment_scores_b)}")
 
     # determine best transition candidates
-    #best_segment_index_a = segment_scores_a.index(min(segment_scores_a))
-    #best_segment_index_b = segment_scores_b.index(min(segment_scores_b))
-    best_segment_index_a = min(segment_scores_a, key=segment_scores_a.get)
-    best_segment_index_b = min(segment_scores_b, key=segment_scores_b.get)
+    best_segment_index_a = segment_scores_a.tolist().index(min(segment_scores_a))
+    best_segment_index_b = segment_scores_b.tolist().index(min(segment_scores_b))
+    #best_segment_index_a = min(segment_scores_a, key=segment_scores_a.get)
+    #best_segment_index_b = min(segment_scores_b, key=segment_scores_b.get)
 
     print(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
     #print(segment_times1)
