@@ -60,6 +60,7 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
         song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_desired(config, song_a, song_a_bpm, song_b, song_b_bpm, bpm)
 
     # 1.2 analyse songs
+    print(f"INFO - Transition length: {transition_length}, Transition midpoint: {transition_midpoint}")
     then = time.time()
     transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted, transition_length, transition_midpoint)
     now = time.time()
@@ -72,6 +73,7 @@ def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_
 
     # print("Frames: %s" % frames)
     print("Transition Points: %s" % transition_points)
+    print(f"Transition times: {util.get_length_for_transition_points(config, transition_points)}")
     print(f"Transition interval lengths (C-D-E): {transition_points['d']-transition_points['c']}, {transition_points['e']-transition_points['d']}")
     print(f"Transition interval lengths (A-B-X): {transition_points['b']-transition_points['a']}, {transition_points['x']-transition_points['b']}")
 

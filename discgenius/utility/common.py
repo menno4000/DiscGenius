@@ -48,6 +48,10 @@ def get_int_parameter(parser, section, parameter):
     return int(string_parameter)
 
 
+def get_float_parameter(parser, section, parameter):
+    string_parameter = get_string_parameter(parser, section, parameter)
+    return float(string_parameter)
+
 def convert_to_list(s):
     return list(filter(None, map(str.strip, s.split(","))))
 
@@ -71,6 +75,7 @@ def get_config(content_path):
         'sample_rate': get_int_parameter(parser, section, 'sample_rate'),
         'mp3_bitrate': get_int_parameter(parser, section, 'mp3_bitrate'),
         'stereo': get_boolean_parameter(parser, section, 'stereo'),
+        'mix_area': get_float_parameter(parser, section, 'mix_area'),
 
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
         'song_path': get_string_parameter(parser, "PATHS", 'song_path'),

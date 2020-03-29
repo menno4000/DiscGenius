@@ -12,29 +12,23 @@ import librosa
 import numpy
 
 
-def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True, mono=False):
+def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True):
     # alternatives: soundfile, wav, sciPy, pydub
     if debug_info:
         print("INFO - Reading song '%s'" % filepath)
 
-    librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=mono, duration=duration)
-    if not mono:
-        song = {'frames': librosa_load[0],
-                'left_channel': numpy.asfortranarray(librosa_load[0][0]),
-                'right_channel': numpy.asfortranarray(librosa_load[0][1]),
-                'frame_rate': config['sample_rate'],
-                'path': filepath,
-                'name': filepath.split('/')[len(filepath.split('/')) - 1]
-                }
-        song['total_frames'] = len(song['frames'][0])
+    librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
+    librosa_load_mono = librosa.core.load(filepath, sr=config['sample_rate'], mono=True, duration=duration)
 
-    if mono:
-        song = {'frames': librosa_load[0],
-                'frame_rate': config['sample_rate'],
-                'path': filepath,
-                'name': filepath.split('/')[len(filepath.split('/')) - 1]
-                }
-        song['total_frames'] = len(song['frames'])
+    song = {'frames': librosa_load[0],
+            'mono': librosa_load_mono[0],
+            'left_channel': numpy.asfortranarray(librosa_load[0][0]),
+            'right_channel': numpy.asfortranarray(librosa_load[0][1]),
+            'frame_rate': config['sample_rate'],
+            'path': filepath,
+            'name': filepath.split('/')[len(filepath.split('/')) - 1]
+            }
+    song['total_frames'] = len(song['frames'][0])
 
     if identifier:
         song['identifier'] = identifier
@@ -81,6 +75,13 @@ def get_length_out_of_frames(config, amount_of_frames):
     minutes = int(array[0])
     seconds = int(60 / 100 * int(array[1][0:2]))
     return "%s:%s" % (minutes, seconds)
+
+
+def get_length_for_transition_points(config, transition_points):
+    times = {}
+    for transition_point in transition_points:
+        times[transition_point] = get_length_out_of_frames(config, config['sample_rate']*transition_points[transition_point])
+    return times
 
 
 def log_info_about_mix(song_a, song_b, transition_points, frames):

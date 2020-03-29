@@ -99,6 +99,6 @@ def librosa_beat_tracking(signal, sample_rate):
 
 
 def librosa_beat_tracking_with_mono_signal(config, song):
-    mono_song = read_wav_file(config, song['path'], debug_info=False, mono=True)
-    return librosa_beat_tracking(mono_song['frames'], config['sample_rate'])
+    song = read_wav_file(config, song['path'], debug_info=False)
+    return librosa_beat_tracking(song['mono'], config['sample_rate'])
 

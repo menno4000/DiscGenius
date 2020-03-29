@@ -5,7 +5,7 @@ from . import utility as util
 
 
 def adjust_tempo(config, song_name, song_tempo, song_tempo_new):
-    song = librosa.core.load(f"{config['song_path']}/{song_name}", mono=False)
+    song = librosa.core.load(f"{config['song_path']}/{song_name}")
     new_song_name = song_name.split('_')[0] + '_' + str(song_tempo_new)
     stretch_path = f"{config['song_path']}/{new_song_name}.wav"
     rate = song[1]
