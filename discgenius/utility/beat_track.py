@@ -1,3 +1,5 @@
+from os import path
+
 from .sound_manipulation import high_cut_filter
 from .utility import read_wav_file, save_wav_file
 
@@ -62,12 +64,23 @@ def aubio_beat_track_with_lpf_before(config, filepath, sample_rate, win_s=512, f
     return aubio_beat_tracking(new_filepath, sample_rate, win_s=win_s)
 
 
-def librosa_beat_tracking(signal, sample_rate):
-    # compute onset envelopes
-    onset_env = librosa.onset.onset_strength(y=signal, sr=sample_rate, aggregate=numpy.median)
+def librosa_beat_tracking(config, signal, song):
+    sample_rate = config['sample_rate']
 
-    # compute beats using librosa beat tracking
-    tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env, sr=sample_rate)
+    # check if beat tracking was done already and take saved status
+    beat_tracking_path = f"{config['beat_path']}/{song['name'][:-4]}.txt"
+    if path.exists(beat_tracking_path):
+        print(f"INFO - Analysis: Reading tempo & beats from file.")
+        tempo, beats = get_beat_tracking_from_file(beat_tracking_path)
+    else:
+        # compute onset envelopes
+        onset_env = librosa.onset.onset_strength(y=signal, sr=sample_rate, aggregate=numpy.median)
+
+        # compute beats using librosa beat tracking
+        tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env, sr=sample_rate)
+
+        # save beat tracking
+        save_beat_tracking_to_file(beat_tracking_path, tempo, beats)
 
     # create onset sample matrix from tracked beats
     onset_samples = list(librosa.frames_to_samples(beats))
@@ -80,25 +93,27 @@ def librosa_beat_tracking(signal, sample_rate):
     times_starts = librosa.samples_to_time(starts, sr=sample_rate)
     times_stops = librosa.samples_to_time(stops, sr=sample_rate)
 
-    #print(f"len of beats: {len(beats)}")
-    #print(f"len of onset_samples: {len(onset_samples)}")
-    #print(f"len of starts: {len(starts)}")
-    #print(f"len of stops: {len(stops)}")
-    #print(f"len of times_starts: {len(times_starts)}")
-    #print(f"len of times_stops: {len(times_stops)}")
-    #print(f"beats: {beats[:10]}")
-    #print(f"onset_samples: {onset_samples[:10]}")
-    #print(f"starts: {starts[:10]}")
-    #print(f"stops: {stops[:10]}")
-    #print(f"times_starts: {times_starts[:10]}")
-    #print(f"times_stops: {times_stops[:10]}")
-
     print(f"INFO - Analysis: Librosa beat detection finished. BPM of song: {tempo}, amount of beats found: {len(beats)}")
-
     return times_starts, times_stops
 
 
 def librosa_beat_tracking_with_mono_signal(config, song):
     song = read_wav_file(config, song['path'], debug_info=False)
-    return librosa_beat_tracking(song['mono'], config['sample_rate'])
+    return librosa_beat_tracking(config, song['mono'], song)
 
+
+def get_beat_tracking_from_file(beat_path):
+    with open(beat_path, 'r') as file:
+        tempo = file.readline().rstrip()
+        beats = [int(line.rstrip()) for line in file]
+    return tempo, beats
+
+
+def save_beat_tracking_to_file(beat_path, tempo, beats):
+    with open(beat_path, 'w') as file:
+        print(str(tempo), file=file)
+        for beat in beats:
+            print(str(beat), file=file)
+        #file.writelines([str(tempo)])
+        #file.writelines([str(beats)])
+    return True
