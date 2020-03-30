@@ -25,6 +25,8 @@ def save_song(config, filename, song_data):
 
 
 def convert_bpm(bpm):
+    if bpm == 0.0:
+        return bpm
     try:
         bpm = float(bpm)
         if bpm < config['min_bpm'] or bpm > config['max_bpm']:
@@ -32,7 +34,7 @@ def convert_bpm(bpm):
         return bpm
 
     except ValueError:
-        raise_exception(400, "Please provide a number as bpm value.")
+        raise_exception(400, "Please provide a float-number as bpm value.")
 
 
 @app.post("/upload")
@@ -71,7 +73,7 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
 async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
               mix_name: str = Body(default=""),
               scenario_name: str = Body(default="EQ_1.0"),
-              bpm: int = Body(default=0),
+              bpm: float = Body(default=0),
               transition_length: int = Body(default=32),
               transition_midpoint: int = Body(default=-1337)):
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
@@ -84,11 +86,10 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
                    "   \"song_a_name\": \"<song_name_1>_120.185.wav\","
                    "   \"song_b_name\": \"<song_name_2>_120.185.wav\","
                    "   \"mix_name\": \"<song_name_1>_to_<song_name_2>\","
-                   "   \"scenario_name\": \"EQ_1.1\","
-                   "   \"song_a_bpm\": \"120.185\","
-                   "   \"song_b_bpm\": \"120.185\","
-                   "   \"transition_length\": \"12\","
-                   "   \"transition_midpoin\": \"8\""
+                   "   \"scenario_name\": \"EQ_1.0\","
+                   "   \"bpm\": \"127,5\","
+                   "   \"transition_length\": \"32\","
+                   "   \"transition_midpoin\": \"16\""
                    "}"
                    "available scenarios:"
                    "CF_1.0  crossfade with configurable vff values"
@@ -120,6 +121,8 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     bpm_a = convert_bpm(util.get_bpm_from_filename(song_a_name))
     bpm_b = convert_bpm(util.get_bpm_from_filename(song_b_name))
     desired_bpm = convert_bpm(bpm)
+    if desired_bpm == 0.0:
+        desired_bpm = bpm_a
 
     if abs(bpm_a-bpm_b) > config['max_bpm_diff']:
         raise_exception(400, f"Please use songs that have similar BPM. Max diff is {config['max_bpm_diff']}")
@@ -132,18 +135,19 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
 
 @app.post("/adjustTempo")
 async def adjust_tempo(song_name: str = Body(default=""),
-                       old_bpm: str = Body(default=""),
-                       new_bpm: str = Body(default="")):
-    if song_name == "" or old_bpm == "" or new_bpm == "":
-        raise_exception(422, "Please provide three attributes in JSON: 'song_name', 'old_bpm' and 'new_bpm'")
+                       bpm: float = Body(default=0.0)):
+    if song_name == "" or bpm == 0:
+        raise_exception(422, "Please provide two attributes in JSON: 'song_name' and 'bpm'")
 
     if not os.path.isfile(f"{config['song_path']}/{song_name}"):
         raise_exception(404, "The given song could not be found. "
                              "Please check using GET '/songs' which songs exist.")
-    old_bpm = convert_bpm(old_bpm)
-    new_bpm = convert_bpm(new_bpm)
 
-    new_song_name = bpmMatch.adjust_tempo(config, song_name, old_bpm, new_bpm)
+    old_bpm = convert_bpm(util.get_bpm_from_filename(song_name))
+    desired_bpm = convert_bpm(bpm)
+
+    song_name = ''.join(song_name.split('_')[:-1])
+    new_song_name = bpmMatch.adjust_tempo(config, song_name, old_bpm, desired_bpm)
 
     return {
         "filename": new_song_name + '.wav',

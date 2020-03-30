@@ -8,14 +8,14 @@ from . import utility as util
 
 def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
     if not song:
-        song = util.read_wav_file(config, f"{config['song_path']}/{song_name}")
+        song = util.read_wav_file(config, f"{config['song_path']}/{song_name}_{bpm}.wav")
 
-    new_song_name = f"{''.join(song_name.split('_')[:-1])}_{str(desired_bpm)}.wav"
+    new_song_name = f"{song_name}_{str(desired_bpm)}.wav"
     new_filepath = f"{config['song_path']}/{new_song_name}"
 
     # if song with bpm exists, use existing
     if path.exists(new_filepath):
-        print(f"SKIP - Song '{new_filepath}' already exists.")
+        #print(f"SKIP - Song '{new_filepath}' already exists.")
         return new_song_name
 
     sample_rate = song['frame_rate']
@@ -28,6 +28,7 @@ def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
     song_resampled = numpy.asfortranarray([song_0_resampled, song_1_resampled])
 
     librosa.output.write_wav(new_filepath, song_resampled, sample_rate)
+    print(f"INFO - Saved adjusted song to '{new_filepath}'")
     return new_song_name
 
 

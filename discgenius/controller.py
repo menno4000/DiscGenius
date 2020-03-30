@@ -39,7 +39,6 @@ def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
     while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
         new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
         i += 1
-    print(f"new mix name: {new_filename}")
     return new_filename
 
 
@@ -58,15 +57,15 @@ def mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, m
     config['transition_length'] = transition_length
     config['transition_midpoint'] = transition_midpoint
 
+    print(f"INFO - A new mix will get created from songs '{song_a_name}' & '{song_b_name}'.")
+    print(f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
+    print(f"       Mix name: '{mix_name}'.")
+    print()
+
     # 1.1 match tempo of both songs before analysis
-    # if no bpm is provided, match tempo of song_b to song_a
-    if desired_bpm == 0:
-        song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_first(config, song_a, bpm_a, song_b, bpm_b)
-    else:
-        song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_desired(config, song_a, song_b, desired_bpm, bpm_a, bpm_b)
+    song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_desired(config, song_a, song_b, desired_bpm, bpm_a, bpm_b)
 
     # 1.2 analyse songs
-    print(f"INFO - Transition length: {transition_length}, Transition midpoint: {transition_midpoint}")
     then = time.time()
     transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted)
     now = time.time()

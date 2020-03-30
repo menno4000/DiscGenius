@@ -90,9 +90,9 @@ def get_config(content_path):
         'audio_formats': get_list_parameter(parser, "LISTS", 'audio_formats'),
         'keys_to_remove': get_list_parameter(parser, "LISTS", 'keys_to_remove'),
 
-        'max_bpm': get_int_parameter(parser, "BPM_LIMITS", 'max_bpm'),
-        'min_bpm': get_int_parameter(parser, "BPM_LIMITS", 'min_bpm'),
-        'max_bpm_diff': get_int_parameter(parser, "BPM_LIMITS", 'max_bpm_diff')
+        'max_bpm': get_float_parameter(parser, "BPM_LIMITS", 'max_bpm'),
+        'min_bpm': get_float_parameter(parser, "BPM_LIMITS", 'min_bpm'),
+        'max_bpm_diff': get_float_parameter(parser, "BPM_LIMITS", 'max_bpm_diff')
     }
     config['scenarios'] = util.get_scenarios(config, True)
     return config
