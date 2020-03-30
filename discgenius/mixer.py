@@ -182,8 +182,6 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
 
     mix_array = np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
 
-    if mix_name == "":
-        mix_name = f"mix_{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     mix_name += ".wav"
     result_path = f"{config['mix_path']}/{mix_name}"
 

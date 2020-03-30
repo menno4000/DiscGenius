@@ -74,7 +74,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
               bpm: int = Body(default=0),
               transition_length: int = Body(default=32),
               transition_midpoint: int = Body(default=-1337)):
-    if song_a_name == "" or song_b_name == "" or scenario_name == "" or mix_name == "":
+    if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(
             status_code=422,
             detail="Please provide four attributes in JSON: 'song_a_name', 'song_b_name', 'song_a_bpm', 'song_a_bpm' \n "

@@ -1,7 +1,6 @@
 import os
 import time
-
-import librosa
+import datetime
 
 from . import evaluator
 from . import mixer
@@ -30,6 +29,9 @@ def generate_safe_song_name(config, filename, extension, bpm):
 
 
 def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
+    if orig_filename == "":
+        orig_filename = f"mix_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}"
+
     i = 1
     segment_length_a = config['transition_midpoint']
     segment_length_b = config['transition_length'] - segment_length_a
@@ -37,6 +39,7 @@ def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
     while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
         new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
         i += 1
+    print(f"new mix name: {new_filename}")
     return new_filename
 
 
