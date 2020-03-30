@@ -207,7 +207,7 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
     # }
     json_data['transitions']['segment_2'] = transition_segment
 
-    save_path = f"{config['data_path']}/data_{mix_name}.json"
+    save_path = f"{config['data_path']}/data_{''.join(mix_name.split('.')[:-1])}.json"
     with open(save_path, 'w') as fp:
         pretty_json = json.dumps(json_data, indent=2)
         fp.write(pretty_json)

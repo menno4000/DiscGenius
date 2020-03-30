@@ -10,7 +10,7 @@ def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
     if not song:
         song = util.read_wav_file(config, f"{config['song_path']}/{song_name}")
 
-    new_song_name = f"{song_name.split('_')[:-1][0]}_{str(desired_bpm)}.wav"
+    new_song_name = f"{''.join(song_name.split('_')[:-1])}_{str(desired_bpm)}.wav"
     new_filepath = f"{config['song_path']}/{new_song_name}"
 
     # if song with bpm exists, use existing

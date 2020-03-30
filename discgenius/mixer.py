@@ -194,7 +194,7 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
         'name': mix_name,
         'identifier': 'mix',
         'total_frames': len(mix_array[0]),
-        'length': util.get_length_out_of_frames(config, len(mix_array))
+        'length': util.get_length_out_of_frames(config, len(mix_array[0]))
     }
 
     return mix_song
