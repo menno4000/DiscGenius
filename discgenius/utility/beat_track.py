@@ -68,10 +68,10 @@ def librosa_beat_tracking(config, signal, song):
     sample_rate = config['sample_rate']
 
     # check if beat tracking was done already and take saved status
-    beat_tracking_path = f"{config['beat_path']}/{song['name'][:-4]}.txt"
+    beat_tracking_path = f"{config['beat_path']}/{song['name']}_{song['bpm']}.txt"
     if path.exists(beat_tracking_path):
-        print(f"INFO - Analysis: Reading tempo & beats from file.")
         tempo, beats = get_beat_tracking_from_file(beat_tracking_path)
+        print(f"INFO - Analysis: Read tempo & beats from file. BPM of song: {tempo}, amount of beats found: {len(beats)}")
     else:
         # compute onset envelopes
         onset_env = librosa.onset.onset_strength(y=signal, sr=sample_rate, aggregate=numpy.median)
@@ -81,6 +81,8 @@ def librosa_beat_tracking(config, signal, song):
 
         # save beat tracking
         save_beat_tracking_to_file(beat_tracking_path, tempo, beats)
+
+        print(f"INFO - Analysis: Librosa beat detection finished. BPM of song: {tempo}, amount of beats found: {len(beats)}")
 
     # create onset sample matrix from tracked beats
     onset_samples = list(librosa.frames_to_samples(beats))
@@ -93,7 +95,6 @@ def librosa_beat_tracking(config, signal, song):
     times_starts = librosa.samples_to_time(starts, sr=sample_rate)
     times_stops = librosa.samples_to_time(stops, sr=sample_rate)
 
-    print(f"INFO - Analysis: Librosa beat detection finished. BPM of song: {tempo}, amount of beats found: {len(beats)}")
     return times_starts, times_stops
 
 

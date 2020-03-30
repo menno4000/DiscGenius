@@ -31,9 +31,11 @@ def generate_safe_song_name(config, filename, extension, bpm):
 
 def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
     i = 1
-    new_filename = f"{orig_filename}_{bpm}_{scenario_name}"
+    segment_length_a = config['transition_midpoint']
+    segment_length_b = config['transition_length'] - segment_length_a
+    new_filename = f"{orig_filename}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
     while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
-        new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}"
+        new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
         i += 1
     return new_filename
 
@@ -73,8 +75,8 @@ def mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, m
     frames = util.calculate_frames(config, song_a_adjusted, song_b_adjusted, transition_points)
 
     # print("Frames: %s" % frames)
-    print("Transition Points: %s" % transition_points)
-    print(f"Transition times: {util.get_length_for_transition_points(config, transition_points)}")
+    print(f"Transition points (seconds): {transition_points}")
+    print(f"Transition points (minutes): {util.get_length_for_transition_points(config, transition_points)}")
     print(f"Transition interval lengths (C-D-E): {transition_points['d']-transition_points['c']}, {transition_points['e']-transition_points['d']}")
     print(f"Transition interval lengths (A-B-X): {transition_points['b']-transition_points['a']}, {transition_points['x']-transition_points['b']}")
     print()

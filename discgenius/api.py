@@ -114,9 +114,11 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if transition_midpoint > transition_length or transition_midpoint < 0:
         raise_exception(400, f"Transition midpoint should be between zero and given transition length ({transition_length}).")
 
-    # todo: remove params and use filename for bpm, add body param for desired bpm
-    bpm_a = convert_bpm(song_a_name.split('_')[-1].split('.')[0])
-    bpm_b = convert_bpm(song_b_name.split('_')[-1].split('.')[0])
+    config['transition_midpoint'] = transition_midpoint
+    config['transition_length'] = transition_length
+
+    bpm_a = convert_bpm(util.get_bpm_from_filename(song_a_name))
+    bpm_b = convert_bpm(util.get_bpm_from_filename(song_b_name))
     desired_bpm = convert_bpm(bpm)
 
     if abs(bpm_a-bpm_b) > config['max_bpm_diff']:
@@ -125,7 +127,6 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
         raise_exception(400, f"Please use a different value for your desired BPM. Max diff is {config['max_bpm_diff']}")
 
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
-    mix_name = f"{mix_name}_{transition_midpoint}-{transition_length-transition_midpoint}"
     return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_length, transition_midpoint)
 
 

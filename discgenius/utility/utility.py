@@ -12,6 +12,10 @@ import librosa
 import numpy
 
 
+def get_bpm_from_filename(name):
+    return name[:-4].split('_')[-1]
+
+
 def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True):
     # alternatives: soundfile, wav, sciPy, pydub
     if debug_info:
@@ -29,6 +33,8 @@ def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=T
             'name': filepath.split('/')[len(filepath.split('/')) - 1]
             }
     song['total_frames'] = len(song['frames'][0])
+    song['bpm'] = get_bpm_from_filename(song['name'])
+    song['name'] = ''.join(song['name'].split('_')[:-1])
 
     if identifier:
         song['identifier'] = identifier
