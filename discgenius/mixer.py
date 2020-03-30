@@ -97,7 +97,7 @@ def mix_transition_segments(song_a, song_b, frames):
     segment_channels_a = [[], []]
     segment_channels_b = [[], []]
 
-    print("INFO - Mixing:   Calculating Transition Segment: C -- D, Length in bars: '%s'" % TSL_LIST[0])
+    print("\t\t  Calculating Transition Segment: C -- D, Length in bars: '%s'" % TSL_LIST[0])
     for i in range(frames['between_c_and_d']):
         frame_for_a = frames['until_c'] + i
         frame_for_b = frames['until_a'] + i
@@ -107,7 +107,7 @@ def mix_transition_segments(song_a, song_b, frames):
         segment_channels_b[0].append(song_b['left_channel'][frame_for_b])
         segment_channels_b[1].append(song_b['right_channel'][frame_for_b])
 
-    print("INFO - Mixing:       Modify Frames of Song A & B for Transition Segment C--D")
+    print("\t\t\tModify Frames of Song A & B for Transition Segment C--D")
     transition_segment_1_left = modify_transition_segment_1(segment_channels_a[0], segment_channels_b[0])
     transition_segment_1_right = modify_transition_segment_1(segment_channels_a[1], segment_channels_b[1])
 
@@ -115,7 +115,7 @@ def mix_transition_segments(song_a, song_b, frames):
     segment_channels_a = [[], []]
     segment_channels_b = [[], []]
 
-    print("INFO - Mixing:   Calculating Transition Segment: D -- E, Length in bars: '%s'" % TSL_LIST[1])
+    print("\t\t  Calculating Transition Segment: D -- E, Length in bars: '%s'" % TSL_LIST[1])
     # todo: if e > song length do sth...
     for i in range(frames['between_d_and_e']):
         frame_for_a = frames['until_d'] + i
@@ -126,11 +126,11 @@ def mix_transition_segments(song_a, song_b, frames):
         segment_channels_b[0].append(song_b['left_channel'][frame_for_b])
         segment_channels_b[1].append(song_b['right_channel'][frame_for_b])
 
-    print("INFO - Mixing:       Modify Frames of Song A & B for Transition Segment D--E")
+    print("\t\t\tModify Frames of Song A & B for Transition Segment D--E")
     transition_segment_2_left = modify_transition_segment_2(segment_channels_a[0], segment_channels_b[0])
     transition_segment_2_right = modify_transition_segment_2(segment_channels_a[1], segment_channels_b[1])
 
-    print("INFO - Mixing: Adding transition segments 1 & 2 to mix.")
+    print("\t       Adding transition segments 1 & 2 to mix.")
     transition_segment_left = np.append(transition_segment_1_left, transition_segment_2_left)
     transition_segment_right = np.append(transition_segment_1_right, transition_segment_2_right)
 

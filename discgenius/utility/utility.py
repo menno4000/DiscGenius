@@ -41,7 +41,7 @@ def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=T
     song['length'] = get_length_out_of_frames(config, song['total_frames'])
 
     if debug_info:
-        print("INFO - Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
+        print("       Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
         song['frame_rate'], song['total_frames'], song['length']))
 
     return song
