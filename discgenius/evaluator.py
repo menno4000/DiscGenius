@@ -5,8 +5,7 @@
 # it will define the transition points and the length of the two transition segments
 
 # TSL = Transition Segment Length
-# tsl_list = [48, 16]
-tsl_list = [1,1]
+tsl_list = [1, 1]
 
 
 def evaluate_segments(config, transition_points):

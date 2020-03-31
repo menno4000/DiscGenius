@@ -90,12 +90,12 @@ def mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, m
     print("INFO - Mixing file took: %0.1f seconds" % (now - then))
 
     # 4. convert to mp3
-    #if mixed_song:
-    #    mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
-    #    if mp3_mix_name:
-    #        #os.remove(mixed_song['path'])
-    #        mixed_song['name'] = mp3_mix_name
-    #        mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
+    if mixed_song:
+        mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
+        if mp3_mix_name:
+            #os.remove(mixed_song['path'])
+            mixed_song['name'] = mp3_mix_name
+            mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
 
     # 5. export json data
     scenario_data = util.get_scenario(config, scenario_name)

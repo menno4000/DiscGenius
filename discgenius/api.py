@@ -42,8 +42,7 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
     body = await request.body()
 
     if filename == "" or extension == "" or bpm == "":
-        raise_exception(400,
-                        "Please provide a filename, the extension (format) of the file and the bpm value of the song as query parameters.")
+        raise_exception(400, "Please provide a filename, the extension (format) of the file and the bpm value of the song as query parameters.")
     if not body:
         raise_exception(400, "Please provide an audio file as a binary file.")
     if extension not in config['audio_formats']:
@@ -113,7 +112,8 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if transition_midpoint == 1337:
         transition_midpoint = transition_length / 2
     if transition_midpoint > transition_length or transition_midpoint < 0:
-        raise_exception(400, f"Transition midpoint should be between zero and given transition length ({transition_length}).")
+        raise_exception(400,
+                        f"Transition midpoint should be between zero and given transition length ({transition_length}).")
 
     config['transition_midpoint'] = transition_midpoint
     config['transition_length'] = transition_length
@@ -124,13 +124,14 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if desired_bpm == 0.0:
         desired_bpm = bpm_a
 
-    if abs(bpm_a-bpm_b) > config['max_bpm_diff']:
+    if abs(bpm_a - bpm_b) > config['max_bpm_diff']:
         raise_exception(400, f"Please use songs that have similar BPM. Max diff is {config['max_bpm_diff']}")
-    if abs(bpm_a-desired_bpm) > config['max_bpm_diff'] or abs(bpm_b-desired_bpm) > config['max_bpm_diff']:
+    if abs(bpm_a - desired_bpm) > config['max_bpm_diff'] or abs(bpm_b - desired_bpm) > config['max_bpm_diff']:
         raise_exception(400, f"Please use a different value for your desired BPM. Max diff is {config['max_bpm_diff']}")
 
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
-    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_length, transition_midpoint)
+    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name,
+                                    scenario_name, transition_length, transition_midpoint)
 
 
 @app.post("/adjustTempo")

@@ -1,9 +1,5 @@
-import librosa
-import librosa.display
-import numpy
-
-from .utility import segment_scorer as scorer
 from .utility import beat_track
+from .utility import segment_scorer as scorer
 
 hop_length = 512
 
@@ -20,9 +16,9 @@ def segment_song(config, signal, times_of_beats):
     sample_rate = config['sample_rate']
     amount_of_areas = len(times_of_beats) - transition_length - clip_size
 
-    for i in range(0, len(times_of_beats)-clip_size):
+    for i in range(0, len(times_of_beats) - clip_size):
         # create possible areas for transition
-        if i < amount_of_areas and i%step_size == 0:
+        if i < amount_of_areas and i % step_size == 0:
             begin_of_segment = times_of_beats[i]
             midpoint = times_of_beats[i + transition_midpoint]
             end_of_segment = times_of_beats[i + transition_length]
@@ -76,7 +72,7 @@ def get_transition_points(config, song_a, song_b):
     #best_segment_index_a = min(segment_scores_a, key=segment_scores_a.get)
     #best_segment_index_b = min(segment_scores_b, key=segment_scores_b.get)
 
-    print(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
+    #print(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
     #print(segment_times1)
 
     print("INFO - Analysis: Generating transition points.")
