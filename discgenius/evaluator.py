@@ -9,10 +9,6 @@ tsl_list = [1, 1]
 
 
 def evaluate_segments(config, transition_points):
-    transition_points['b'] = round(transition_points['a'] + (transition_points['d'] - transition_points['c']), 3)
-    transition_points['x'] = round(transition_points['a'] + (transition_points['e'] - transition_points['c']), 3)
-    tsl_list[0] = (config['transition_midpoint'])
-    tsl_list[1] = (config['transition_length']-config['transition_midpoint'])
 
     return tsl_list, transition_points
 

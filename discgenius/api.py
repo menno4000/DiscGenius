@@ -183,16 +183,3 @@ async def get_mixes():
 @app.get("/scenarios")
 async def get_scenarios():
     return util.get_scenarios(config, just_names=False)
-
-
-@app.get("/evaluation")
-async def get_evaluation():
-    return evaluator.get_evaluation_points()
-
-
-@app.post("/evaluation")
-async def set_evaluation(tsl_list: list = Body(default=[]), transition_points: dict = Body(default={})):
-    if len(tsl_list) != 2 or transition_points == {}:
-        raise_exception(400, "Please provide a tsl_list with two elements and the transition points a, c, d & e.")
-
-    return evaluator.set_evaluation_points(tsl_list, transition_points)

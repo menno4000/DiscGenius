@@ -18,20 +18,6 @@ def calc_euclidean_distance(stft1, stft2):
     return numpy.average(euclidean_distances)
 
 
-async def calculate_similarity_scores(si, clip_stfts, step_size, clip_size, midpoint, transition_length):
-    score_first = numpy.sum([calc_euclidean_distance(clip_stfts[si*step_size], clip_stfts[si*step_size + i]) for i in range(0, int(midpoint/clip_size))])
-    score_second = numpy.sum([calc_euclidean_distance(clip_stfts[si*step_size + midpoint], clip_stfts[si*step_size + i]) for i in range(int(midpoint/clip_size), int(transition_length/clip_size-1))])
-
-    # if scores of two segments are similar, then they are suitable for transition
-    # todo: check if scores are small which gives bonus
-    if score_second > score_first:
-        ratio = score_second/score_first - 1
-    else:
-        ratio = score_first/score_second - 1
-    print(f"si: {si}, scores: {score_first}, {score_second}, ratio: {ratio}")
-    return ratio
-
-
 def calculate_scores(config, stfts_clips, areas, boundaries):
     # dummy scores to skip last two thirds
     scores = numpy.full(len(areas), 1000)

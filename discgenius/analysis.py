@@ -33,55 +33,54 @@ def segment_song(config, signal, times_of_beats):
 
 
 # calculates transition points dictionary for a transition of given between two given songs
-def get_transition_points(config, song_a, song_b):
-    mono_signal_a = song_a['mono']
-    mono_signal_b = song_b['mono']
+def find_best_segments(config, song, bias_mode):
+    mono_signal = song['mono']
 
-    print("INFO - Analysis: Beat detection for both songs.")
-
+    print(f"INFO - Analysis: Beat detection for '{song['name']}'.")
     # aubio
     #times_of_beats_a, bpm_a = beat_track.aubio_beat_tracking(song_a['path'], sample_rate)
-    #times_of_beats_b, bpm_b = beat_track.aubio_beat_tracking(song_b['path'], sample_rate)
-
     # aubio with lpf before
     #times_of_beats_a, bpm_a = beat_track.aubio_beat_track_with_lpf_before(config, song_a['path'], sample_rate)
-    #times_of_beats_b, bpm_b = beat_track.aubio_beat_track_with_lpf_before(config, song_b['path'], sample_rate)
-
     # librosa with start times
     #times_of_beats_a, stop_times_of_beats_a = beat_track.librosa_beat_tracking(signal_a, sample_rate)
-    #times_of_beats_b, stop_times_of_beats_b = beat_track.librosa_beat_tracking(signal_b, sample_rate)
-
     # librosa with mono signal input --> best results
-    times_of_beats_a, stop_times_of_beats_a = beat_track.librosa_beat_tracking_with_mono_signal(config, song_a)
-    times_of_beats_b, stop_times_of_beats_b = beat_track.librosa_beat_tracking_with_mono_signal(config, song_b)
+    times_of_beats, stop_times_of_beats = beat_track.librosa_beat_tracking_with_mono_signal(config, song)
 
     # split song into clip segments of even number of consecutive beats
     print("INFO - Analysis: Creating segments for comparison.")
-    areas_a, clips_a = segment_song(config, mono_signal_a, times_of_beats_a)
-    areas_b, clips_b = segment_song(config, mono_signal_b, times_of_beats_b)
+    areas, clips = segment_song(config, mono_signal, times_of_beats)
 
     # score segments using segment_scorer utility class
-    segment_scores_a = scorer.score_segments(config, clips_a, areas_a, bias_mode=False)
-    segment_scores_b = scorer.score_segments(config, clips_b, areas_b, bias_mode=True)
+    segment_scores = scorer.score_segments(config, clips, areas, bias_mode=bias_mode)
 
     #print(f"segment scores: length of 1: {len(segment_scores_a)}, 2: {len(segment_scores_b)}")
 
     # determine best transition candidates
-    best_segment_index_a = segment_scores_a.tolist().index(min(segment_scores_a))
-    best_segment_index_b = segment_scores_b.tolist().index(min(segment_scores_b))
-    #best_segment_index_a = min(segment_scores_a, key=segment_scores_a.get)
-    #best_segment_index_b = min(segment_scores_b, key=segment_scores_b.get)
+    best_segment_index_a = segment_scores.tolist().index(min(segment_scores))
 
     #print(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
     #print(segment_times1)
 
-    print("INFO - Analysis: Generating transition points.")
-    transition_points['c'] = areas_a[best_segment_index_a][0]
-    transition_points['d'] = areas_a[best_segment_index_a][1]
-    transition_points['e'] = areas_a[best_segment_index_a][2]
+    return areas[best_segment_index_a]
 
-    transition_points['a'] = areas_b[best_segment_index_b][0]
-    transition_points['b'] = areas_b[best_segment_index_b][1]
-    transition_points['x'] = areas_b[best_segment_index_b][2]
 
-    return transition_points
+def get_transition_points(config, song_a, song_b):
+    # song A: last part of song
+    transition_points_a = find_best_segments(config, song_a, False)
+
+    # song B: first part of song
+    transition_points_b = find_best_segments(config, song_b, True)
+
+    transition_points['c'] = transition_points_a[0]
+    transition_points['d'] = transition_points_a[1]
+    transition_points['e'] = transition_points_a[2]
+    transition_points['a'] = transition_points_b[0]
+    transition_points['b'] = transition_points_b[1]
+    transition_points['x'] = transition_points_b[2]
+    #transition_points['b'] = round(transition_points['a'] + (transition_points['d'] - transition_points['c']), 3)
+    #transition_points['x'] = round(transition_points['a'] + (transition_points['e'] - transition_points['c']), 3)
+
+    # TSL = Transition Segment Length
+    tsl_list = [config['transition_midpoint'], config['transition_length']-config['transition_midpoint']]
+
+    return transition_points, tsl_list
