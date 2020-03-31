@@ -1,9 +1,16 @@
 from os import path
 
 import librosa
+from scipy import signal
+import aubio
 import numpy
 
 from . import utility as util
+
+
+def scipy_resample(frame_array, ratio):
+    amount_of_frames = int(len(frame_array) * ratio)
+    return signal.resample(frame_array, amount_of_frames)
 
 
 def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
@@ -21,6 +28,9 @@ def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
     sample_rate = song['frame_rate']
     tempo_ratio = desired_bpm / bpm
     new_rate = sample_rate / tempo_ratio
+
+    #song_0_resampled = scipy_resample(song['left_channel'], bpm/desired_bpm)
+    #song_1_resampled = scipy_resample(song['right_channel'], bpm/desired_bpm)
 
     song_0_resampled = librosa.resample(song['left_channel'], sample_rate, new_rate)
     song_1_resampled = librosa.resample(song['right_channel'], sample_rate, new_rate)
