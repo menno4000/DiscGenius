@@ -5,8 +5,8 @@ from fastapi import FastAPI, HTTPException, Body
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
 
-from . import controller, evaluator
-from .utility import common, bpmMatch
+from . import controller
+from .utility import common, bpmMatch, validator
 from .utility import utility as util
 
 app = FastAPI()
@@ -24,19 +24,6 @@ def save_song(config, filename, song_data):
         f.write(song_data)
 
 
-def convert_bpm(bpm):
-    if bpm == 0.0:
-        return bpm
-    try:
-        bpm = float(bpm)
-        if bpm < config['min_bpm'] or bpm > config['max_bpm']:
-            raise_exception(400, f"Please set a bpm value between {config['min_bpm']} and {config['max_bpm']}.")
-        return bpm
-
-    except ValueError:
-        raise_exception(400, "Please provide a float-number as bpm value.")
-
-
 @app.post("/upload")
 async def upload_song(request: Request, filename: str = "", extension: str = "", bpm: str = ""):
     body = await request.body()
@@ -49,7 +36,7 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
         raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config[
             'audio_formats'])
 
-    bpm = convert_bpm(bpm)
+    bpm = validator.convert_bpm(config, bpm)
 
     filename = controller.generate_safe_song_name(config, filename, extension, bpm)
     save_song(config, filename, body)
@@ -74,30 +61,10 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
               scenario_name: str = Body(default="EQ_1.0"),
               bpm: float = Body(default=0),
               transition_length: int = Body(default=32),
-              transition_midpoint: int = Body(default=-1337)):
+              transition_midpoint: int = Body(default=-1337),
+              transition_points: dict = Body(default=None)):
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
-        raise_exception(
-            status_code=422,
-            detail="Please provide four attributes in JSON: 'song_a_name', 'song_b_name', 'song_a_bpm', 'song_a_bpm' \n "
-                   "Optionally Provide mix_name (str), scenario_name (str default EQ_1.1, see below), transition_length (int default 16), midpoint (int default 8)"
-                   "Example Body:"
-                   "{   "
-                   "   \"song_a_name\": \"<song_name_1>_120.185.wav\","
-                   "   \"song_b_name\": \"<song_name_2>_120.185.wav\","
-                   "   \"mix_name\": \"<song_name_1>_to_<song_name_2>\","
-                   "   \"scenario_name\": \"EQ_1.0\","
-                   "   \"bpm\": \"127,5\","
-                   "   \"transition_length\": \"32\","
-                   "   \"transition_midpoin\": \"16\""
-                   "}"
-                   "available scenarios:"
-                   "CF_1.0  crossfade with configurable vff values"
-                   "EQ_1.0  smooth 3-band-EQ transition with bass swap"
-                   "EQ_1.1  smooth 3-band-EQ transition with bass swap and 1 bar bass cut"
-                   "EQ_2.0  'hard' 3-band-EQ transition with bass swap"
-                   "EQ_2.1  'hard' 3-band-EQ transition with bass swap and 1 bar bass cut"
-                   "VFF_1.0 volume fading transition"
-                   "VFF_1.1 volume fading transition and 1 bar bass cut")
+        raise_exception(status_code=422, detail=util.read_api_detail(config))
 
     if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
             f"{config['song_path']}/{song_b_name}"):
@@ -107,31 +74,20 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
 
-    if transition_length < 2:
-        raise_exception(400, "Transition length should be greater then one.")
-    if transition_midpoint == 1337:
-        transition_midpoint = transition_length / 2
-    if transition_midpoint > transition_length or transition_midpoint < 0:
-        raise_exception(400,
-                        f"Transition midpoint should be between zero and given transition length ({transition_length}).")
+    bpm_a, bpm_b, desired_bpm = validator.validate_bpms(config, song_a_name, song_b_name, bpm)
 
+    transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config, transition_length, transition_midpoint, transition_points, desired_bpm, song_a_name, song_b_name)
     config['transition_midpoint'] = transition_midpoint
     config['transition_length'] = transition_length
 
-    bpm_a = convert_bpm(util.get_bpm_from_filename(song_a_name))
-    bpm_b = convert_bpm(util.get_bpm_from_filename(song_b_name))
-    desired_bpm = convert_bpm(bpm)
-    if desired_bpm == 0.0:
-        desired_bpm = bpm_a
-
-    if abs(bpm_a - bpm_b) > config['max_bpm_diff']:
-        raise_exception(400, f"Please use songs that have similar BPM. Max diff is {config['max_bpm_diff']}")
-    if abs(bpm_a - desired_bpm) > config['max_bpm_diff'] or abs(bpm_b - desired_bpm) > config['max_bpm_diff']:
-        raise_exception(400, f"Please use a different value for your desired BPM. Max diff is {config['max_bpm_diff']}")
-
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
-    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name,
-                                    scenario_name, transition_length, transition_midpoint)
+
+    print(f"INFO - A new mix will get created from songs '{song_a_name}' & '{song_b_name}'.")
+    print(f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
+    print(f"       Mix name: '{mix_name}'.")
+    print()
+
+    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_points)
 
 
 @app.post("/adjustTempo")

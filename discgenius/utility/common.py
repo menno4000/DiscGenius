@@ -78,6 +78,8 @@ def get_config(content_path):
         'mix_area': get_float_parameter(parser, section, 'mix_area'),
         'clip_size': get_int_parameter(parser, section, 'clip_size'),
         'step_size': get_int_parameter(parser, section, 'step_size'),
+        'min_segment_time': get_int_parameter(parser, section, 'min_segment_time'),
+
 
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
         'beat_path': get_string_parameter(parser, "PATHS", 'beat_path'),
@@ -86,6 +88,7 @@ def get_config(content_path):
         'mix_path': get_string_parameter(parser, "PATHS", 'mix_path'),
         'scenario_path': get_string_parameter(parser, "PATHS", 'scenario_path'),
         'ffmpeg_path': get_string_parameter(parser, "PATHS", 'ffmpeg_path'),
+        'info_text_path': get_string_parameter(parser, "PATHS", 'info_text_path'),
 
         'audio_formats': get_list_parameter(parser, "LISTS", 'audio_formats'),
         'keys_to_remove': get_list_parameter(parser, "LISTS", 'keys_to_remove'),

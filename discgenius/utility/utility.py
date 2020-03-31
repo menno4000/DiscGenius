@@ -12,6 +12,11 @@ import librosa
 import numpy
 
 
+def get_length_of_song(config, song_name):
+    song = read_wav_file(config, f"{config['song_path']}/{song_name}", debug_info=False)
+    return song['total_frames']/song['frame_rate']
+
+
 def get_bpm_from_filename(name):
     return name[:-4].split('_')[-1]
 
@@ -218,3 +223,7 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
         pretty_json = json.dumps(json_data, indent=2)
         fp.write(pretty_json)
     return json_data
+
+
+def read_api_detail(config):
+    return ''.join(open(config['info_text_path'], 'r').readlines())

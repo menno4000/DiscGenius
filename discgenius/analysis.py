@@ -80,7 +80,4 @@ def get_transition_points(config, song_a, song_b):
     #transition_points['b'] = round(transition_points['a'] + (transition_points['d'] - transition_points['c']), 3)
     #transition_points['x'] = round(transition_points['a'] + (transition_points['e'] - transition_points['c']), 3)
 
-    # TSL = Transition Segment Length
-    tsl_list = [config['transition_midpoint'], config['transition_length']-config['transition_midpoint']]
-
-    return transition_points, tsl_list
+    return transition_points

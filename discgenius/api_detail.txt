@@ -1,0 +1,27 @@
+Please provide four attributes in JSON: 'song_a_name', 'song_b_name', 'desired_bpm'
+Optionally provide mix_name (str), scenario_name (str, default EQ_1.0, see below), transition_length (int, default 32), midpoint (int, default 16) or your own transition_points (dict with values for C, D, E & A)
+Example Body:
+{   
+    song_a_name: <song_name_1>.wav,
+    song_b_name: <song_name_2>.wav,
+    mix_name: super_mix_1000,
+    scenario_name: EQ_1.0,
+    bpm: 127.5,
+    transition_length: 128,
+    transition_midpoint: 64,
+    transition_points: {
+        "a": 15.115,
+        "c": 324.95,
+        "d": 384.02,
+        "e": 443.10
+        }
+}
+
+Available scenarios (stored as json-files under /scenarios):
+    CF_1.0 -    Crossfade with configurable vff values
+    EQ_1.0 -    'smooth' 3-band-EQ transition with bass swap @ midpoint
+    EQ_1.1 -    'smooth' 3-band-EQ transition with bass swap @ midpoint and 1 bar bass cut
+    EQ_2.0 -    'hard' 3-band-EQ transition with bass swap @ midpoint
+    EQ_2.1 -    'hard' 3-band-EQ transition with bass swap @ midpoint and 1 bar bass cut
+    VFF_1.0 -   volume fading transition with bass swap @ midpoint
+    VFF_1.1 -   volume fading transition with bass swap @ midpoint and 1 bar bass cut
