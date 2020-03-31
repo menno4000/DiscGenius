@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+
 from . import utility as util
 
 
@@ -19,20 +20,21 @@ def convert_bpm(config, bpm):
         raise_exception(400, "Please provide a float-number as bpm value.")
 
 
-def validate_transition_times(config, transition_length, transition_midpoint, transition_points, mix_bpm, song_a_name, song_b_name):
+def validate_transition_times(config, transition_length, transition_midpoint, transition_points, mix_bpm, song_a_name,
+                              song_b_name):
     if not transition_points:
         if transition_length < 2 or transition_length > 256:
             raise_exception(400, "Transition length should be greater then one and not bigger then 256.")
         if transition_midpoint == 1337:
             transition_midpoint = transition_length / 2
         if transition_midpoint > transition_length or transition_midpoint < 0:
-            raise_exception(400,
-                            f"Transition midpoint should be between zero and given transition length ({transition_length}).")
+            raise_exception(400, f"Transition midpoint should be between zero and given transition length ({transition_length}).")
         return transition_length, transition_length, None
 
     # check if given points are in chronological order & bigger then set minimum
     min_time = config['min_segment_time']
-    if transition_points['e'] - transition_points['d'] < min_time or transition_points['d'] - transition_points['c'] < min_time:
+    if transition_points['e'] - transition_points['d'] < min_time or transition_points['d'] - transition_points[
+        'c'] < min_time:
         raise_exception(400, "Please make the time frame between transition points bigger.")
 
     # recalculate transition length & midpoint
@@ -47,8 +49,12 @@ def validate_transition_times(config, transition_length, transition_midpoint, tr
     song_a_length = util.get_length_of_song(config, song_a_name)
     song_b_length = util.get_length_of_song(config, song_b_name)
 
-    if song_a_length - transition_points['e'] < min_time or song_b_length - transition_points['a'] - transition_length_time < min_time:
-        raise_exception(400, "The given transition points are to big for the provided songs.")
+    boundary_a = song_a_length - transition_points['e']
+    boundary_b = song_b_length - transition_points['a'] - transition_length_time
+    if boundary_a < 0 or boundary_b < 0:
+        raise_exception(400, f"The given transition points are to big for the provided songs. \n"
+                             f"Length of A: {round(song_a_length, 3)}s, B: {round(song_b_length, 3)}s.\n"
+                             f"Boundaries A (Length-E): {boundary_a}, B (Length-A-Trans_length): {boundary_b}")
 
     return transition_length_beats, transition_midpoint_beats, transition_points
 
