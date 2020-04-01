@@ -29,12 +29,11 @@ def validate_transition_times(config, transition_length, transition_midpoint, tr
             transition_midpoint = transition_length / 2
         if transition_midpoint > transition_length or transition_midpoint < 0:
             raise_exception(400, f"Transition midpoint should be between zero and given transition length ({transition_length}).")
-        return transition_length, transition_length, None
+        return transition_length, transition_midpoint, None
 
     # check if given points are in chronological order & bigger then set minimum
     min_time = config['min_segment_time']
-    if transition_points['e'] - transition_points['d'] < min_time or transition_points['d'] - transition_points[
-        'c'] < min_time:
+    if transition_points['e'] - transition_points['d'] < min_time or transition_points['d'] - transition_points['c'] < min_time:
         raise_exception(400, "Please make the time frame between transition points bigger.")
 
     # recalculate transition length & midpoint

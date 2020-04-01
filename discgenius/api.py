@@ -77,8 +77,8 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     bpm_a, bpm_b, desired_bpm = validator.validate_bpms(config, song_a_name, song_b_name, bpm)
 
     transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config, transition_length, transition_midpoint, transition_points, desired_bpm, song_a_name, song_b_name)
-    config['transition_midpoint'] = transition_midpoint
     config['transition_length'] = transition_length
+    config['transition_midpoint'] = transition_midpoint
 
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
 
