@@ -82,8 +82,8 @@ def get_config(content_path):
 
 
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
-        'beat_path': get_string_parameter(parser, "PATHS", 'beat_path'),
         'song_path': get_string_parameter(parser, "PATHS", 'song_path'),
+        'song_analysis_path': get_string_parameter(parser, "PATHS", 'song_analysis_path'),
         'mp3_storage': get_string_parameter(parser, "PATHS", 'mp3_storage'),
         'mix_path': get_string_parameter(parser, "PATHS", 'mix_path'),
         'scenario_path': get_string_parameter(parser, "PATHS", 'scenario_path'),

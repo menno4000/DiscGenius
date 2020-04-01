@@ -1,4 +1,5 @@
 from os import path
+import json
 
 from .sound_manipulation import high_cut_filter
 from .utility import read_wav_file, save_wav_file
@@ -68,7 +69,7 @@ def librosa_beat_tracking(config, signal, song):
     sample_rate = config['sample_rate']
 
     # check if beat tracking was done already and take saved status
-    beat_tracking_path = f"{config['beat_path']}/{song['name']}_{song['bpm']}.txt"
+    beat_tracking_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"
     if path.exists(beat_tracking_path):
         tempo, beats = get_beat_tracking_from_file(beat_tracking_path)
         print(f"\t\t Read tempo & beats from file. BPM of song: {tempo}, amount of beats found: {len(beats)}")
@@ -104,17 +105,16 @@ def librosa_beat_tracking_with_mono_signal(config, song):
 
 
 def get_beat_tracking_from_file(beat_path):
-    with open(beat_path, 'r') as file:
-        tempo = file.readline().rstrip()
-        beats = [int(line.rstrip()) for line in file]
-    return tempo, beats
+    with open(beat_path, mode='r', encoding='utf-8') as file:
+        json_data = json.load(file)
+    return json_data['bpm'], json_data['beats']
 
 
 def save_beat_tracking_to_file(beat_path, tempo, beats):
-    with open(beat_path, 'w') as file:
-        print(str(tempo), file=file)
-        for beat in beats:
-            print(str(beat), file=file)
-        #file.writelines([str(tempo)])
-        #file.writelines([str(beats)])
+    song_analysis = {
+        'bpm': tempo,
+        'beats': numpy.ndarray.tolist(beats)
+    }
+    with open(beat_path, mode='w', encoding='utf-8') as file:
+        json.dump(song_analysis, file, indent=2)
     return True

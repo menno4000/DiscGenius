@@ -100,15 +100,15 @@ async def adjust_tempo(song_name: str = Body(default=""),
         raise_exception(404, "The given song could not be found. "
                              "Please check using GET '/songs' which songs exist.")
 
-    old_bpm = convert_bpm(util.get_bpm_from_filename(song_name))
-    desired_bpm = convert_bpm(bpm)
+    old_bpm = validator.convert_bpm(config, util.get_bpm_from_filename(song_name))
+    desired_bpm = validator.convert_bpm(config, bpm)
 
     song_name = ''.join(song_name.split('_')[:-1])
     new_song_name = bpmMatch.adjust_tempo(config, song_name, old_bpm, desired_bpm)
 
     return {
-        "filename": new_song_name + '.wav',
-        "info": "Please refer to this name, when calling '/createMix'"
+        "filename": new_song_name,
+        "info": f"A copy of the original song was created in a new tempo ({desired_bpm}). Please refer to this name, when calling '/createMix'"
     }
 
 
