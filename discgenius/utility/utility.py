@@ -12,36 +12,41 @@ import librosa
 import numpy
 
 
-def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True, mono=False):
+def get_length_of_song(config, song_name):
+    song = read_wav_file(config, f"{config['song_path']}/{song_name}", debug_info=False)
+    return song['total_frames']/song['frame_rate']
+
+
+def get_bpm_from_filename(name):
+    return name[:-4].split('_')[-1]
+
+
+def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True):
     # alternatives: soundfile, wav, sciPy, pydub
     if debug_info:
         print("INFO - Reading song '%s'" % filepath)
 
-    librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=mono, duration=duration)
-    if not mono:
-        song = {'frames': librosa_load[0],
-                'left_channel': numpy.asfortranarray(librosa_load[0][0]),
-                'right_channel': numpy.asfortranarray(librosa_load[0][1]),
-                'frame_rate': config['sample_rate'],
-                'path': filepath,
-                'name': filepath.split('/')[len(filepath.split('/')) - 1]
-                }
-        song['total_frames'] = len(song['frames'][0])
+    librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
+    librosa_load_mono = librosa.core.load(filepath, sr=config['sample_rate'], mono=True, duration=duration)
 
-    if mono:
-        song = {'frames': librosa_load[0],
-                'frame_rate': config['sample_rate'],
-                'path': filepath,
-                'name': filepath.split('/')[len(filepath.split('/')) - 1]
-                }
-        song['total_frames'] = len(song['frames'])
+    song = {'frames': librosa_load[0],
+            'mono': librosa_load_mono[0],
+            'left_channel': numpy.asfortranarray(librosa_load[0][0]),
+            'right_channel': numpy.asfortranarray(librosa_load[0][1]),
+            'frame_rate': config['sample_rate'],
+            'path': filepath,
+            'name': filepath.split('/')[len(filepath.split('/')) - 1]
+            }
+    song['total_frames'] = len(song['frames'][0])
+    song['bpm'] = get_bpm_from_filename(song['name'])
+    song['name'] = ''.join(song['name'].split('_')[:-1])
 
     if identifier:
         song['identifier'] = identifier
     song['length'] = get_length_out_of_frames(config, song['total_frames'])
 
     if debug_info:
-        print("INFO - Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
+        print("       Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
         song['frame_rate'], song['total_frames'], song['length']))
 
     return song
@@ -55,9 +60,6 @@ def save_wav_file(config, list_of_frames, path, debug_info=True):
     if debug_info:
         print("INFO - Saving mixed audio file to '%s'" % path)
     librosa.output.write_wav(path, list_of_frames, config['sample_rate'], norm=True)
-
-    if debug_info:
-        print("SUCCESS - Finished saving.")
 
     # sf.write(path, list_of_frames, samplerate, subtype='FLOAT', format='WAV')
     # scipy.io.wavfile.write(path, samplerate, list_of_frames)
@@ -81,6 +83,13 @@ def get_length_out_of_frames(config, amount_of_frames):
     minutes = int(array[0])
     seconds = int(60 / 100 * int(array[1][0:2]))
     return "%s:%s" % (minutes, seconds)
+
+
+def get_length_for_transition_points(config, transition_points):
+    times = {}
+    for transition_point in transition_points:
+        times[transition_point] = get_length_out_of_frames(config, config['sample_rate']*transition_points[transition_point])
+    return times
 
 
 def log_info_about_mix(song_a, song_b, transition_points, frames):
@@ -161,10 +170,12 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
 
     json_data['scenario'] = scenario_data
     json_data['transitions'] = {}
+    json_data['clip_size'] = config['clip_size']
+    json_data['step_size'] = config['step_size']
 
     # transition segment 1
     transition_segment = {
-        'length_in_bars': tsl_list[0],
+        'length_in_beats': tsl_list[0],
         'length_in_seconds': round(transition_points['d'] - transition_points['c'], 3),
         'transition_points_in_seconds': {
             'start_at_A': transition_points['c'],
@@ -207,8 +218,12 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
     # }
     json_data['transitions']['segment_2'] = transition_segment
 
-    save_path = f"{config['data_path']}/data_{mix_name}.json"
+    save_path = f"{config['data_path']}/data_{mix_name[:-4]}.json"
     with open(save_path, 'w') as fp:
         pretty_json = json.dumps(json_data, indent=2)
         fp.write(pretty_json)
     return json_data
+
+
+def read_api_detail(config):
+    return ''.join(open(config['info_text_path'], 'r').readlines())

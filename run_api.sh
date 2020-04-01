@@ -5,6 +5,7 @@ mkdir audio/songs
 mkdir audio/songs/storage
 mkdir audio/mixes
 mkdir audio/data
+mkdir audio/data/beats
 
 export PYTHONPATH=${PYTHONPATH:-.}
 echo "PYTHONPATH set to ${PYTHONPATH}"

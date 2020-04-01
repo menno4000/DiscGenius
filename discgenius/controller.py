@@ -1,7 +1,6 @@
 import os
 import time
-
-import librosa
+import datetime
 
 from . import evaluator
 from . import mixer
@@ -30,10 +29,15 @@ def generate_safe_song_name(config, filename, extension, bpm):
 
 
 def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
+    if orig_filename == "":
+        orig_filename = f"mix_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}"
+
     i = 1
-    new_filename = f"{orig_filename}_{bpm}_{scenario_name}"
+    segment_length_a = config['transition_midpoint']
+    segment_length_b = config['transition_length'] - segment_length_a
+    new_filename = f"{orig_filename}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
     while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
-        new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}"
+        new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
         i += 1
     return new_filename
 
@@ -45,38 +49,37 @@ def create_wav_from_audio(config, filename, extension):
     util.move_audio_to_storage(config, input_path)
 
 
-def mix_two_files(config, song_a_name, song_b_name, song_a_bpm, song_b_bpm, mix_name, scenario_name, transition_length=16, transition_midpoint=8, bpm=0):
-    # --- andromeda to 86 --- C-D-E: 5:24-6:24:7:23 --- 32-32
-
+def mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_points):
     # read the original wav files
     song_a = util.read_wav_file(config, f"{config['song_path']}/{song_a_name}", identifier='songA')
     song_b = util.read_wav_file(config, f"{config['song_path']}/{song_b_name}", identifier='songB')
 
-    # 1.1 match tempo of both songs before analysis
-    # if no bpm is provided, match tempo of song_b to song_a
-    if bpm == 0:
-        song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_first(config, song_a, song_a_bpm, song_b, song_b_bpm)
-    else:
-        song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_desired(config, song_a, song_a_bpm, song_b, song_b_bpm, bpm)
+    # TSL = Transition Segment Length
+    tsl_list = [config['transition_midpoint'], config['transition_length'] - config['transition_midpoint']]
 
-    # 1.2 analyse songs
-    then = time.time()
-    transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted, transition_length, transition_midpoint)
-    now = time.time()
-    print("INFO - Analysing file took: %0.1f seconds" % (now - then))
+    # 1 match tempo of both songs before analysis
+    song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_desired(config, song_a, song_b, desired_bpm, bpm_a, bpm_b)
 
-    # 2. evaluate segments from analysis --> get transition points
-    tsl_list, transition_points = evaluator.evaluate_segments(config, transition_points, transition_length)
+    # 2. analyse songs
+    if transition_points:
+        transition_points['b'] = round(transition_points['a'] + (transition_points['d'] - transition_points['c']), 3)
+        transition_points['x'] = round(transition_points['a'] + (transition_points['e'] - transition_points['c']), 3)
+    if not transition_points:
+        then = time.time()
+        transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted)
+        now = time.time()
+        print("INFO - Analysing file took: %0.1f seconds. \n" % (now - then))
 
-    frames = util.calculate_frames(config, song_a_adjusted, song_b_adjusted, transition_points)
-
-    # print("Frames: %s" % frames)
-    print("Transition Points: %s" % transition_points)
-    print(f"Transition interval lengths (C-D-E): {transition_points['d']-transition_points['c']}, {transition_points['e']-transition_points['d']}")
-    print(f"Transition interval lengths (A-B-X): {transition_points['b']-transition_points['a']}, {transition_points['x']-transition_points['b']}")
+    print(f"Transition points (seconds): {transition_points}")
+    print(f"Transition points (minutes): {util.get_length_for_transition_points(config, transition_points)}")
+    print(f"Transition interval lengths (C-D-E): {round(transition_points['d']-transition_points['c'], 3)}s, {round(transition_points['e']-transition_points['d'], 3)}s")
+    print(f"Transition interval lengths (A-B-X): {round(transition_points['b']-transition_points['a'], 3)}s, {round(transition_points['x']-transition_points['b'], 3)}s")
+    print()
 
     # 3. mix both songs
     then = time.time()
+    frames = util.calculate_frames(config, song_a_adjusted, song_b_adjusted, transition_points)
+    # print("Frames: %s" % frames)
     mixed_song = mixer.create_mixed_wav_file(config, song_a_adjusted, song_b_adjusted, transition_points, frames, tsl_list, mix_name, scenario_name)
     now = time.time()
     print("INFO - Mixing file took: %0.1f seconds" % (now - then))
