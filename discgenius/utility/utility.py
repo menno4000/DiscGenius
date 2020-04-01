@@ -227,3 +227,61 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
 
 def read_api_detail(config):
     return ''.join(open(config['info_text_path'], 'r').readlines())
+
+
+def save_song_analysis_data(config, song, transition_points, tsl_list):
+    clip_size = config['clip_size']
+    identifier = f"{tsl_list[0]}-{tsl_list[1]}_{clip_size}"
+    data_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"
+
+    with open(data_path, mode='r', encoding='utf-8') as fp:
+        song_data = json.load(fp)
+
+    if 'transition_points' in song_data:
+        current_settings = {}
+        if identifier in song_data['transition_points']:
+            current_settings = song_data['transition_points'][identifier]
+        if 'c' in transition_points:
+            current_settings['c'] = transition_points['c']
+            current_settings['d'] = transition_points['d']
+            current_settings['e'] = transition_points['e']
+        elif 'a' in transition_points:
+            current_settings['a'] = transition_points['a']
+            current_settings['b'] = transition_points['b']
+            current_settings['x'] = transition_points['x']
+        song_data['transition_points'][identifier] = current_settings
+    else:
+        song_data['transition_points'] = {
+            identifier: transition_points
+        }
+
+    with open(data_path, mode='w', encoding='utf-8') as fp:
+        json.dump(song_data, fp, indent=2)
+
+
+def read_song_analysis_data(config, song, tsl_list, bias_mode):
+    clip_size = config['clip_size']
+    identifier = f"{tsl_list[0]}-{tsl_list[1]}_{clip_size}"
+    data_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"
+    transition_points = {}
+
+    if not os.path.exists(data_path):
+        return None
+    with open(data_path, mode='r', encoding='utf-8') as fp:
+        song_data = json.load(fp)
+
+    if 'transition_points' in song_data and identifier in song_data['transition_points']:
+        current_settings = song_data['transition_points'][identifier]
+        if bias_mode and 'a' in current_settings:
+            transition_points['a'] = current_settings['a']
+            transition_points['b'] = current_settings['b']
+            transition_points['x'] = current_settings['x']
+            print(f"INFO - Analysis: Successfully read transition_points for '{song['name']}': {transition_points}")
+            return transition_points
+        elif not bias_mode and 'c' in current_settings:
+            transition_points['c'] = current_settings['c']
+            transition_points['d'] = current_settings['d']
+            transition_points['e'] = current_settings['e']
+            print(f"INFO - Analysis: Successfully read transition_points for '{song['name']}': {transition_points}")
+            return transition_points
+    return None

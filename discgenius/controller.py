@@ -66,7 +66,7 @@ def mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, m
         transition_points['x'] = round(transition_points['a'] + (transition_points['e'] - transition_points['c']), 3)
     if not transition_points:
         then = time.time()
-        transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted)
+        transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted, tsl_list)
         now = time.time()
         print("INFO - Analysing file took: %0.1f seconds. \n" % (now - then))
 

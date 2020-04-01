@@ -1,5 +1,6 @@
 from .utility import beat_track
 from .utility import segment_scorer as scorer
+from .utility import utility as util
 
 hop_length = 512
 
@@ -33,7 +34,7 @@ def segment_song(config, signal, times_of_beats):
 
 
 # calculates transition points dictionary for a transition of given between two given songs
-def find_best_segments(config, song, bias_mode):
+def find_best_segments(config, song, tsl_list, bias_mode):
     mono_signal = song['mono']
 
     print(f"INFO - Analysis: Beat detection for '{song['name']}'.")
@@ -59,25 +60,35 @@ def find_best_segments(config, song, bias_mode):
     best_segment_index = segment_scores.tolist().index(min(segment_scores))
 
     #print(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
-    #print(segment_times1)
+    #print(segment_times1)#
 
-    return areas[best_segment_index]
+    transition_points = {}
 
+    if bias_mode:
+        transition_points['a'] = areas[best_segment_index][0]
+        transition_points['b'] = areas[best_segment_index][1]
+        transition_points['x'] = areas[best_segment_index][2]
+    else:
+        transition_points['c'] = areas[best_segment_index][0]
+        transition_points['d'] = areas[best_segment_index][1]
+        transition_points['e'] = areas[best_segment_index][2]
 
-def get_transition_points(config, song_a, song_b):
-    # song A: last part of song
-    transition_points_a = find_best_segments(config, song_a, False)
-
-    # song B: first part of song
-    transition_points_b = find_best_segments(config, song_b, True)
-
-    transition_points['c'] = transition_points_a[0]
-    transition_points['d'] = transition_points_a[1]
-    transition_points['e'] = transition_points_a[2]
-    transition_points['a'] = transition_points_b[0]
-    transition_points['b'] = transition_points_b[1]
-    transition_points['x'] = transition_points_b[2]
-    #transition_points['b'] = round(transition_points['a'] + (transition_points['d'] - transition_points['c']), 3)
-    #transition_points['x'] = round(transition_points['a'] + (transition_points['e'] - transition_points['c']), 3)
-
+    util.save_song_analysis_data(config, song, transition_points, tsl_list)
     return transition_points
+
+
+def get_transition_points(config, song_a, song_b, tsl_list):
+
+    # song A: last part of song --> bias_mode = False (C-D-E)
+    # check if analysis was already done
+    transition_points_a = util.read_song_analysis_data(config, song_a, tsl_list, False)
+    if not transition_points_a:
+        transition_points_a = find_best_segments(config, song_a, tsl_list, False)
+
+    # song B: first part of song --> bias_mode = True (A-B-X)
+    transition_points_b = util.read_song_analysis_data(config, song_b, tsl_list, True)
+    if not transition_points_b:
+
+        transition_points_b = find_best_segments(config, song_b, tsl_list, True)
+
+    return {**transition_points_a, **transition_points_b}
