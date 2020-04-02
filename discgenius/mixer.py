@@ -67,18 +67,18 @@ def modify_transition_segment_2(frame_array_a, frame_array_b):
         transition_song_a, transition_song_b = scenarios.EQ_1_segment_2_dynamic(frame_array_a, frame_array_b, SCENARIO)
     elif scenario_name == "EQ_1.1":
         transition_song_a, transition_song_b = scenarios.EQ_1_segment_2_dynamic(frame_array_a, frame_array_b, SCENARIO)
-        transition_song_b = sm.cut_bass_for_last_bar(transition_song_b, TSL_LIST[0])
+        transition_song_b = sm.cut_bass_for_last_bar(transition_song_b, TSL_LIST[0]/4)
     elif scenario_name == "EQ_2.0":
         transition_song_a = scenarios.low_cut_segment(frame_array_a)
         transition_song_b = frame_array_b
     elif scenario_name == "EQ_2.1":
         transition_song_a = scenarios.low_cut_segment(frame_array_a)
-        transition_song_b = sm.cut_bass_for_last_bar(frame_array_b, TSL_LIST[0])
+        transition_song_b = sm.cut_bass_for_last_bar(frame_array_b, TSL_LIST[0]/4)
     elif scenario_name == "VFF_1.0":
         transition_song_a, transition_song_b = scenarios.vff_1_segment_2(frame_array_a, frame_array_b, SCENARIO)
     elif scenario_name == "VFF_1.1":
         transition_song_a, transition_song_b = scenarios.vff_1_segment_2(frame_array_a, frame_array_b, SCENARIO)
-        transition_song_b = sm.cut_bass_for_last_bar(transition_song_b, TSL_LIST[0])
+        transition_song_b = sm.cut_bass_for_last_bar(transition_song_b, TSL_LIST[0]/4)
     elif scenario_name == "CF_1.0":
         transition_song_a, transition_song_b = scenarios.crossfade_segment_2(frame_array_a, frame_array_b, SCENARIO)
     else:
