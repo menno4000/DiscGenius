@@ -12,6 +12,8 @@ Der Übergang soll so gestaltet werden, dass nicht nur die Beats der beiden Song
 Wir wollen dem Benutzer verschiedene Übergangsszenarien anbieten, aus denen er auswählen kann. 
 Nach der Analyse soll die Auswertung geschehen, in der für die verschiedenen Szenarien ein geeigneter Zeitpunkt gewählt wird und letztendlich der Übergang ausgeführt wird.
 
+Die im Ordner befindliche Datei ```DiscGenius.postman_collection.json``` kann in die Postman-Applikation importiert werden, um ein Beispielsatz an Anfragen für den Webserver zu erhalten.
+
 ## Setup
 
 You will need python3 and pip. After that you can start the application with running the script ```./run_api.sh```.
