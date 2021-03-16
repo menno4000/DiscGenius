@@ -28,6 +28,24 @@ def generate_safe_song_name(config, filename, extension, bpm):
     return filename
 
 
+def generate_safe_song_temp_name(config, filename, extension):
+    filename = filename.replace("_", "-")
+    temp_filename = filename
+
+    # generate safe file ending
+    filename = f"{filename}.{extension}"
+
+    # check if file exists
+    fwe = temp_filename
+    i = 1
+    # check if given audio file or audio file in wav already exist, generate new name until a safe one is found
+    while os.path.isfile(f"{config['song_path']}/{filename}") or os.path.isfile(f"{config['song_path']}/{fwe}.wav"):
+        filename = f"{temp_filename}-{i}.{extension}"
+        fwe = filename[:-(len(extension) + 1)]
+        i += 1
+    return filename
+
+
 def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
     if orig_filename == "":
         orig_filename = f"mix_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}"
@@ -85,12 +103,12 @@ def mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, m
     print("INFO - Mixing file took: %0.1f seconds" % (now - then))
 
     # 4. convert to mp3
-    #if mixed_song:
-    #    mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
-    #    if mp3_mix_name:
-    #        #os.remove(mixed_song['path'])
-    #        mixed_song['name'] = mp3_mix_name
-    #        mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
+    if mixed_song:
+       mp3_mix_name = converter.convert_result_to_mp3(config, mixed_song['name'])
+       if mp3_mix_name:
+           #os.remove(mixed_song['path'])
+           mixed_song['name'] = mp3_mix_name
+           mixed_song['path'] = f"{config['mix_path']}/{mp3_mix_name}"
 
     # 5. export json data
     scenario_data = util.get_scenario(config, scenario_name)

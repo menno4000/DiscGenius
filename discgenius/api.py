@@ -1,5 +1,6 @@
 import os
 from os.path import isfile, join
+import uvicorn
 
 from fastapi import FastAPI, HTTPException, Body
 from starlette.requests import Request
@@ -8,6 +9,7 @@ from starlette.responses import StreamingResponse
 from . import controller
 from .utility import common, bpmMatch, validator
 from .utility import utility as util
+from .utility import bpm_detection
 
 app = FastAPI()
 
@@ -28,13 +30,19 @@ def save_song(config, filename, song_data):
 async def upload_song(request: Request, filename: str = "", extension: str = "", bpm: str = ""):
     body = await request.body()
 
-    if filename == "" or extension == "" or bpm == "":
-        raise_exception(400, "Please provide a filename, the extension (format) of the file and the bpm value of the song as query parameters.")
+    if filename == "" or extension == "":
+        raise_exception(400, "Please provide a filename and the extension (format) of the song as query parameters.")
     if not body:
         raise_exception(400, "Please provide an audio file as a binary file.")
     if extension not in config['audio_formats']:
         raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config[
             'audio_formats'])
+
+    temp_filename = controller.generate_safe_song_temp_name(config, filename, extension)
+    save_song(config, temp_filename, body)
+
+    if bpm == "":
+        bpm = bpm_detection.estimate_tempo(config, temp_filename, 3)
 
     bpm = validator.convert_bpm(config, bpm)
 
@@ -139,3 +147,6 @@ async def get_mixes():
 @app.get("/scenarios")
 async def get_scenarios():
     return util.get_scenarios(config, just_names=False)
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=9001, log_level='debug')

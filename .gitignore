@@ -35,5 +35,17 @@ dist/
 nbdist/
 .nb-gradle/
 
+### Front End ###
+node_modules/
+dist/
+npm-debug.log
+yarn-error.log
+.DS_Store
+/webapp/package-lock.json
+
+
 ### project based ###
 audio/
+/.ipynb_checkpoints/
+/.ipynb_checkpoints/
+/run_api_dev.sh
