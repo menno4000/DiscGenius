@@ -39,7 +39,7 @@ def generate_safe_song_temp_name(config, filename, extension):
     fwe = temp_filename
     i = 1
     # check if given audio file or audio file in wav already exist, generate new name until a safe one is found
-    while os.path.isfile(f"{config['song_path']}/{filename}") or os.path.isfile(f"{config['song_path']}/{fwe}.wav"):
+    while os.path.isfile(f"{config['song_analysis_path']}/{filename}") or os.path.isfile(f"{config['song_analysis_path']}/{fwe}.wav"):
         filename = f"{temp_filename}-{i}.{extension}"
         fwe = filename[:-(len(extension) + 1)]
         i += 1

@@ -7,6 +7,7 @@
 import json
 import os
 from os.path import isfile, join
+import soundfile as sf
 
 import librosa
 import numpy
@@ -26,14 +27,19 @@ def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=T
     if debug_info:
         print("INFO - Reading song '%s'" % filepath)
 
-    librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
-    librosa_load_mono = librosa.core.load(filepath, sr=config['sample_rate'], mono=True, duration=duration)
+    librosa_load = sf.read(filepath, dtype='float32')
+    # librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
+    # librosa_load_mono = librosa.core.load(filepath, sr=config['sample_rate'], mono=True, duration=duration)
 
-    song = {'frames': librosa_load[0],
-            'mono': librosa_load_mono[0],
-            'left_channel': numpy.asfortranarray(librosa_load[0][0]),
-            'right_channel': numpy.asfortranarray(librosa_load[0][1]),
-            'frame_rate': config['sample_rate'],
+    librosa_load_stereo_l = [i[0] for i in librosa_load[0]]
+    librosa_load_stereo_r = [i[1] for i in librosa_load[0]]
+    librosa_load_mono = [((i[0]+i[1])/2) for i in librosa_load[0]]
+
+    song = {'frames': librosa_load,
+            'mono': numpy.asfortranarray(librosa_load_mono),
+            'left_channel': numpy.asfortranarray(librosa_load_stereo_l),
+            'right_channel': numpy.asfortranarray(librosa_load_stereo_r),
+            'frame_rate': librosa_load[1],
             'path': filepath,
             'name': filepath.split('/')[len(filepath.split('/')) - 1]
             }
@@ -59,9 +65,9 @@ def save_wav_file(config, list_of_frames, path, debug_info=True):
     #     i += 1
     if debug_info:
         print("INFO - Saving mixed audio file to '%s'" % path)
-    librosa.output.write_wav(path, list_of_frames, config['sample_rate'], norm=True)
-
-    # sf.write(path, list_of_frames, samplerate, subtype='FLOAT', format='WAV')
+    # librosa.output.write_wav(path, list_of_frames, config['sample_rate'], norm=True)
+    #
+    sf.write(path, list_of_frames, config['sample_rate'])
     # scipy.io.wavfile.write(path, samplerate, list_of_frames)
 
     return path

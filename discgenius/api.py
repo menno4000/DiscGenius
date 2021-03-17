@@ -26,6 +26,11 @@ def save_song(config, filename, song_data):
         f.write(song_data)
 
 
+def save_temp_song(config, filename, song_data):
+    with open(f"{config['song_analysis_path']}/{filename}", mode='bx') as f:
+        f.write(song_data)
+
+
 @app.post("/upload")
 async def upload_song(request: Request, filename: str = "", extension: str = "", bpm: str = ""):
     body = await request.body()
@@ -37,9 +42,9 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
     if extension not in config['audio_formats']:
         raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config[
             'audio_formats'])
-
+    # create temp file to run bpm detection on
     temp_filename = controller.generate_safe_song_temp_name(config, filename, extension)
-    save_song(config, temp_filename, body)
+    save_temp_song(config, temp_filename, body)
 
     if bpm == "":
         bpm = bpm_detection.estimate_tempo(config, temp_filename, 3)
@@ -48,6 +53,9 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
 
     filename = controller.generate_safe_song_name(config, filename, extension, bpm)
     save_song(config, filename, body)
+
+    # remove bpm detection temp files
+    os.remove(f"{config['song_analysis_path']}/{temp_filename}")
 
     if not extension == "wav":
         controller.create_wav_from_audio(config, filename, extension)
@@ -69,7 +77,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
               scenario_name: str = Body(default="EQ_1.0"),
               bpm: float = Body(default=0),
               transition_length: int = Body(default=32),
-              transition_midpoint: int = Body(default=-1337),
+              transition_midpoint: int = Body(default=16),
               transition_points: dict = Body(default=None)):
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(status_code=422, detail=util.read_api_detail(config))
