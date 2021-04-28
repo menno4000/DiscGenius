@@ -38,9 +38,9 @@ def calculate_scores(config, stfts_clips, areas, boundaries):
 
 
 # calculates segment scores for a list of beat clips
-def score_segments(config, clips, areas, bias_mode=False):
-    mix_area_a = config['mix_area']
-    mix_area_b = 1 - mix_area_a
+def score_segments(config, clips, areas, entry_point, bias_mode=False):
+    mix_area_a = entry_point
+    mix_area_b = 1 - entry_point
 
     clip_stfts = [calc_stft_averages(numpy.abs(librosa.stft(clips[i]))) for i in range(0, len(clips))]
     iterations = int(len(areas)*mix_area_a)

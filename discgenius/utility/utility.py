@@ -18,8 +18,19 @@ def get_length_of_song(config, song_name):
     return song['total_frames']/song['frame_rate']
 
 
+def get_length_of_mix(config, song_name):
+    song = read_wav_file(config, f"{config['mix_path']}/{song_name}", debug_info=False)
+    return song['total_frames']/song['frame_rate']
+
+
 def get_bpm_from_filename(name):
-    return name[:-4].split('_')[-1]
+    song_bpm = name[:-4].split('_')[-1]
+    return song_bpm
+
+
+def get_bpm_from_filename_mix(name):
+    mix_bpm = name[:-4].split('_')[1]
+    return mix_bpm
 
 
 def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True):
@@ -41,7 +52,8 @@ def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=T
             'right_channel': numpy.asfortranarray(librosa_load_stereo_r),
             'frame_rate': librosa_load[1],
             'path': filepath,
-            'name': filepath.split('/')[len(filepath.split('/')) - 1]
+            'name': filepath.split('/')[len(filepath.split('/')) - 1],
+            'num_songs': 1
             }
     song['total_frames'] = len(song['frames'][0])
     song['bpm'] = get_bpm_from_filename(song['name'])
@@ -162,7 +174,7 @@ def get_scenarios(config, just_names=True):
     return scenarios
 
 
-def export_transition_parameters_to_json(config, list_of_songs, transition_points, scenario_data, tsl_list):
+def export_transition_parameters_to_json(config, list_of_songs, transition_points, scenario_data, tsl_list, num_songs, bpm):
     print("INFO - Generating json-file that stores transition process.")
     mix_name = ""
     json_data = {}
@@ -174,6 +186,8 @@ def export_transition_parameters_to_json(config, list_of_songs, transition_point
             if key in song:
                 del song[key]
 
+    json_data['bpm'] = bpm
+    json_data['num_songs'] = num_songs
     json_data['scenario'] = scenario_data
     json_data['transitions'] = {}
     json_data['clip_size'] = config['clip_size']
@@ -291,3 +305,11 @@ def read_song_analysis_data(config, song, tsl_list, bias_mode):
             print(f"INFO - Analysis: Successfully read transition_points for '{song['name']}': {transition_points}")
             return transition_points
     return None
+
+
+def read_mix_content_data(config, mix_name):
+    mix_data_file = 'data_' + '.'.join(mix_name.split('.')[:-1])
+    data_path = f"{config['data_path']}/{mix_data_file}.json"
+    with open(data_path, mode='r', encoding='utf8') as mix_file:
+        mix_data = json.load(mix_file)
+        return mix_data['num_songs'], mix_data['bpm']

@@ -65,8 +65,10 @@ def aubio_beat_track_with_lpf_before(config, filepath, sample_rate, win_s=512, f
     return aubio_beat_tracking(new_filepath, sample_rate, win_s=win_s)
 
 
+# time intensive beat frame detection using librosa.
+# TODO needs to be run less per analysis to improve performance.
 def librosa_beat_tracking(config, signal, song):
-    sample_rate = config['sample_rate']
+    sample_rate = song['frame_rate']
 
     # check if beat tracking was done already and take saved status
     beat_tracking_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"

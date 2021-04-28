@@ -70,6 +70,54 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
         "info": "Please refer to this name, when calling '/createMix'"
     }
 
+@app.post("/extendMix")
+async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
+                    mix_name: str = Body(default=""),
+                    scenario_name: str = Body(default="EQ_1.0"),
+                    bpm: float = Body(default=0),
+                    transition_length: int = Body(default=32),
+                    transition_midpoint: int = Body(default=16),
+                    transition_points: dict = Body(default=None),
+                    exit_point: float = Body(default=config['mix_area']),
+                    entry_point: float = Body(default=config['mix_area'])):
+    if mix_a_name == "" or song_b_name == "" or scenario_name == "":
+        raise_exception(status_code=422, detail=util.read_api_detail(config))
+
+    if not os.path.isfile(f"{config['mix_path']}/{mix_a_name}") or not os.path.isfile(
+            f"{config['song_path']}/{song_b_name}"):
+        raise_exception(404, "One of the two given songs could not be found. "
+                             "Please check using GET '/songs' which songs exist.")
+
+    # TODO retrieve number of included songs from song description json
+    num_songs_a, bpm_a = util.read_mix_content_data(config, mix_a_name)
+    if bpm == 0:
+        desired_bpm = bpm_a
+    else:
+        desired_bpm = bpm
+
+    exit_point = exit_point / num_songs_a
+
+    if scenario_name not in SCENARIOS:
+        raise_exception(422, "Transition scenario could not be found.")
+
+    if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
+        raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
+
+    bpm_a, bpm_b, desired_bpm = validator.validate_bpms_extend(config, song_b_name, bpm_a, desired_bpm)
+
+    transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config, transition_length, transition_midpoint, transition_points, desired_bpm, mix_a_name, song_b_name)
+    config['transition_length'] = transition_length
+    config['transition_midpoint'] = transition_midpoint
+
+    mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
+
+    print(f"INFO - A new mix will get created from songs '{mix_a_name}' & '{song_b_name}'.")
+    print(f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
+    print(f"       Mix name: '{mix_name}'.")
+    print()
+
+    return controller.mix_two_files(config, mix_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_points, entry_point, exit_point, num_songs_a)
+
 
 @app.post("/createMix")
 async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
@@ -78,7 +126,9 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
               bpm: float = Body(default=0),
               transition_length: int = Body(default=32),
               transition_midpoint: int = Body(default=16),
-              transition_points: dict = Body(default=None)):
+              transition_points: dict = Body(default=None),
+              exit_point: float = Body(default=config['mix_area']),
+              entry_point: float = Body(default=config['mix_area'])):
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(status_code=422, detail=util.read_api_detail(config))
 
@@ -87,10 +137,15 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
         raise_exception(404, "One of the two given songs could not be found. "
                              "Please check using GET '/songs' which songs exist.")
 
+    num_songs_a = 1
+
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
 
-    bpm_a, bpm_b, desired_bpm = validator.validate_bpms(config, song_a_name, song_b_name, bpm)
+    if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
+        raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
+
+    bpm_a, bpm_b, desired_bpm = validator.validate_bpms_create(config, song_a_name, song_b_name, bpm)
 
     transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config, transition_length, transition_midpoint, transition_points, desired_bpm, song_a_name, song_b_name)
     config['transition_length'] = transition_length
@@ -103,7 +158,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     print(f"       Mix name: '{mix_name}'.")
     print()
 
-    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_points)
+    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_points, entry_point, exit_point, num_songs_a)
 
 
 @app.post("/adjustTempo")

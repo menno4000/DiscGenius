@@ -21,7 +21,7 @@ def convert_bpm(config, bpm):
 
 
 def validate_transition_times(config, transition_length, transition_midpoint, transition_points, mix_bpm, song_a_name,
-                              song_b_name):
+                              song_b_name, mix=False):
     if not transition_points:
         if transition_length < 2 or transition_length > 256:
             raise_exception(400, "Transition length should be greater then one and not bigger then 256.")
@@ -45,7 +45,10 @@ def validate_transition_times(config, transition_length, transition_midpoint, tr
     transition_midpoint_beats = int(round(transition_midpoint_length / beat_length, 0))
 
     # check if points are in songs
-    song_a_length = util.get_length_of_song(config, song_a_name)
+    if mix:
+        song_a_length = util.get_length_of_mix(config, song_a_name)
+    else:
+        song_a_length = util.get_length_of_song(config, song_a_name)
     song_b_length = util.get_length_of_song(config, song_b_name)
 
     boundary_a = song_a_length - transition_points['e']
@@ -58,8 +61,7 @@ def validate_transition_times(config, transition_length, transition_midpoint, tr
     return transition_length_beats, transition_midpoint_beats, transition_points
 
 
-def validate_bpms(config, song_a_name, song_b_name, desired_bpm):
-    bpm_a = convert_bpm(config, util.get_bpm_from_filename(song_a_name))
+def validate_bpms(config, song_b_name, desired_bpm, bpm_a):
     bpm_b = convert_bpm(config, util.get_bpm_from_filename(song_b_name))
     desired_bpm = convert_bpm(config, desired_bpm)
     if desired_bpm == 0.0:
@@ -71,3 +73,13 @@ def validate_bpms(config, song_a_name, song_b_name, desired_bpm):
         raise_exception(400, f"Please use a different value for your desired BPM. Max diff is {config['max_bpm_diff']}")
 
     return bpm_a, bpm_b, desired_bpm
+
+
+def validate_bpms_create(config, song_a_name, song_b_name, desired_bpm):
+    bpm_a = convert_bpm(config, util.get_bpm_from_filename(song_a_name))
+    return validate_bpms(config, song_b_name, desired_bpm, bpm_a)
+
+
+def validate_bpms_extend(config, song_b_name, prev_bpm, desired_bpm):
+    bpm_a = prev_bpm
+    return validate_bpms(config, song_b_name, desired_bpm, bpm_a)
