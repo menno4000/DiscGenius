@@ -67,8 +67,15 @@ def aubio_beat_track_with_lpf_before(config, filepath, sample_rate, win_s=512, f
 
 # time intensive beat frame detection using librosa.
 # TODO needs to be run less per analysis to improve performance.
-def librosa_beat_tracking(config, signal, song):
+def librosa_beat_tracking(config, signal, song, entry_point):
     sample_rate = song['frame_rate']
+
+    # create signal partition based on given entry point
+    entry_point_index = round(len(signal) * entry_point)
+    if entry_point > 0.5:
+        signal_part = signal[entry_point_index:]
+    else:
+        signal_part = signal[:entry_point_index]
 
     # check if beat tracking was done already and take saved status
     beat_tracking_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"
@@ -77,7 +84,7 @@ def librosa_beat_tracking(config, signal, song):
         print(f"\t\t Read tempo & beats from file. BPM of song: {tempo}, amount of beats found: {len(beats)}")
     else:
         # compute onset envelopes
-        onset_env = librosa.onset.onset_strength(y=signal, sr=sample_rate, aggregate=numpy.median)
+        onset_env = librosa.onset.onset_strength(y=signal_part, sr=sample_rate, aggregate=numpy.median)
 
         # compute beats using librosa beat tracking
         tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env, sr=sample_rate)
@@ -89,7 +96,7 @@ def librosa_beat_tracking(config, signal, song):
 
     # create onset sample matrix from tracked beats
     onset_samples = list(librosa.frames_to_samples(beats))
-    onset_samples = numpy.concatenate(onset_samples, len(signal))
+    onset_samples = numpy.concatenate(onset_samples, len(signal_part))
 
     # derive frame index of beat starts/stops from onset sample matrix
     starts = onset_samples[0:-1]
@@ -98,12 +105,18 @@ def librosa_beat_tracking(config, signal, song):
     times_starts = librosa.samples_to_time(starts, sr=sample_rate)
     times_stops = librosa.samples_to_time(stops, sr=sample_rate)
 
+    # offset times values based on entry_point if we aim to find exit segments
+    if entry_point > 0.5:
+        times_offset = (len(signal)/sample_rate)*entry_point
+        times_starts = [t + times_offset for t in times_starts]
+        times_stops = [t + times_offset for t in times_stops]
+
     return times_starts, times_stops
 
 
-def librosa_beat_tracking_with_mono_signal(config, song):
+def librosa_beat_tracking_with_mono_signal(config, song, entry_point):
     song = read_wav_file(config, song['path'], debug_info=False)
-    return librosa_beat_tracking(config, song['mono'], song)
+    return librosa_beat_tracking(config, song['mono'], song, entry_point)
 
 
 def get_beat_tracking_from_file(beat_path):

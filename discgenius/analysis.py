@@ -45,7 +45,7 @@ def find_best_segments(config, song, tsl_list, bias_mode, entry_point):
     # # librosa with start times
     # times_of_beats_a, stop_times_of_beats_a = beat_track.librosa_beat_tracking(signal_a, sample_rate)
     # librosa with mono signal input --> best results
-    times_of_beats, stop_times_of_beats = beat_track.librosa_beat_tracking_with_mono_signal(config, song)
+    times_of_beats, stop_times_of_beats = beat_track.librosa_beat_tracking_with_mono_signal(config, song, entry_point)
 
     # split song into clip segments of even number of consecutive beats
     print("INFO - Analysis: Creating segments for comparison.")

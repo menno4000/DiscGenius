@@ -78,7 +78,6 @@ async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(
                     transition_length: int = Body(default=32),
                     transition_midpoint: int = Body(default=16),
                     transition_points: dict = Body(default=None),
-                    exit_point: float = Body(default=config['mix_area']),
                     entry_point: float = Body(default=config['mix_area'])):
     if mix_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(status_code=422, detail=util.read_api_detail(config))
@@ -95,10 +94,13 @@ async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(
     else:
         desired_bpm = bpm
 
-    exit_point = exit_point / num_songs_a
 
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
+
+    exit_point_modifier = entry_point / num_songs_a
+    exit_point = 1 - exit_point_modifier
+
 
     if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
         raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
@@ -127,7 +129,6 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
               transition_length: int = Body(default=32),
               transition_midpoint: int = Body(default=16),
               transition_points: dict = Body(default=None),
-              exit_point: float = Body(default=config['mix_area']),
               entry_point: float = Body(default=config['mix_area'])):
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(status_code=422, detail=util.read_api_detail(config))
@@ -142,6 +143,7 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
 
+    exit_point = 1 - entry_point
     if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
         raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
 
