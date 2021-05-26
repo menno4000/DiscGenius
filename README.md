@@ -75,7 +75,10 @@ POST /adjustTempo -   Adjusts the tempo (bpm) of an existing song and saves a co
                         "bpm": 128.0
                       }
 ```
+## Front End Setup
 
+The DiscGenius Frontend comes in the form of a web application built with Vue 3 and typescript. To run it, you'll need the [node package manager](https://www.npmjs.com/) installed, allowing you to run `npm install` in the `/discgenius-vuets/` directory. This will install the frontend dependencies, including Vue 3 and typescript.
+To run the front end, simply run `npm run serve` in the same directory and visit `http://localhost:8080/` to interact with the application. To interact with the API, you'll need to boot the backend of course.
 
 
 
