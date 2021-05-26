@@ -3,9 +3,9 @@
     <button class="loginButton" v-on:click="doLogin">Login</button>
   </div>
   <div class="loginDiv" v-if="authState">
-    <label class="loginLabel">
-      Logged in as {{username}}
-    </label>
+    <div>
+      <label class="loginLabel">Logged in as {{username}}</label>
+    </div>
   </div>
 </template>
 
@@ -36,7 +36,12 @@ export default class LoginState extends Vue{
   align-content: center;
 }
 .loginButton{
+  color: white;
+  font-size: 16px;
+  background-color: #00b9ff;
   margin: 20px;
+  padding: 15px 30px;
+  border-radius: 4px;
 }
 .loginLabel{
   margin: 20px;

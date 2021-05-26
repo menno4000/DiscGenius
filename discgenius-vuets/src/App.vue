@@ -1,6 +1,6 @@
 <template>
   <LogoHeader/>
-  <section class="container">
+  <section class="flexContainer">
     <div class="one">
       <Navigate v-on:switch="switchViewState($event)"/>
     </div>
@@ -88,15 +88,16 @@ export default class App extends Vue {
   color: #2c3e50;
   margin-top: 60px;
 }
-.container {
-  width: 60%;
-  margin: auto;
-}
+
 .one {
-  float: left;
+  align-content: center;
+  display: inline-block;
+  vertical-align: middle;
 }
 .two {
-  margin-left: 30px;
+  align-content: center;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 

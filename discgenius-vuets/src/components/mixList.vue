@@ -6,6 +6,9 @@
       <div class="mixNumSongsLabel">{{mix.numSongs}}</div>
       <div class="mixLengthLabel">{{mix.length}}</div>
       <div class="mixTempoLabel">{{mix.tempo}}</div>
+      <button class="downloadButton">
+        Download
+      </button>
       <button class="deleteButton">
         Delete
       </button>
@@ -32,39 +35,56 @@ export default class MixList extends Vue{
 <style scoped>
 .spacer {
   width: 100%;
-  height: 40px;
+  height: 20px;
 }
 .songDiv{
   width: 100%;
   margin-bottom: 20px;
 }
 .mixNameLabel{
-  float: left;
-  text-align: left;
+  display: inline-block;
+  vertical-align: middle;
   margin-left: 10%;
-  width: 30%;
+  width: 25%;
 }
 .mixTempoLabel{
-  float: left;
-  text-align: left;
+  display: inline-block;
+  vertical-align: middle;
   width: 5%;
-  margin-left: 5%;
+  margin-left: 10px;
 }
 .mixLengthLabel{
-  float: left;
-  text-align: left;
+  display: inline-block;
+  vertical-align: middle;
   width: 5%;
-  margin-left: 5%;
+  margin-left: 10px;
 }
 .mixNumSongsLabel{
-  float: left;
+  display: inline-block;
+  vertical-align: middle;
   text-align: left;
   width: 5%;
-  margin-left: 5%;
+  margin-left: 10px;
+}
+.downloadButton{
+  display: inline-block;
+  vertical-align: middle;
+  color: white;
+  font-size: 16px;
+  background-color: #00b9ff;
+  margin: 20px;
+  padding: 15px 30px;
+  border-radius: 4px;
 }
 .deleteButton{
-  float:right;
-  margin-right: 15%;
+  display: inline-block;
+  vertical-align: middle;
   align-self: center;
+  color: white;
+  font-size: 16px;
+  background-color: #ff5d44;
+  margin: 20px;
+  padding: 15px 30px;
+  border-radius: 4px;
 }
 </style>

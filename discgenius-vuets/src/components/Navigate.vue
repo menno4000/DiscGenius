@@ -15,6 +15,11 @@ export default class Navigate extends Vue{
 
 <style scoped>
 .navButton {
+  color: white;
+  font-size: 16px;
+  background-color: #76b900;
   margin: 20px;
+  padding: 15px 30px;
+  border-radius: 4px;
 }
 </style>

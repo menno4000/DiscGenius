@@ -1,6 +1,6 @@
 <template>
   <div id="header">
-    <img alt="Logo" src="@/assets/dglogo_gray.png">
+    <img alt="Logo" src="@/assets/dglogo_htw_tp.png">
     <h1>{{title}}</h1>
     <h4>{{subtitle}}</h4>
   </div>

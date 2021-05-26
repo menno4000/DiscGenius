@@ -1,6 +1,7 @@
 <template>
   <div class="spacer"/>
-  <section id="songSelect">
+  <div id="songSelect">
+    <label class="stepDescription">1. Select Songs for the new Mix</label>
     <div>
       <select v-model="selected1" @change="selectFirstSong" class="audioSelect">
         <option v-for="song in songs"
@@ -29,42 +30,61 @@
       <label class="songInfo">tempo: {{ tempo2 }}</label>
       <label class="songInfo">length: {{ length2 }}</label>
     </div>
-  </section>
-  <section id="previewSelect" v-if="songsSelected">
+  </div>
+  <div id="previewSelect" v-if="songsSelected">
+    <label class="stepDescription">2. Select a Mix Scenario</label>
     <div>
-      <div class="one">
+      <div class="scenarioBlock">
         <button class="scenarioButton"
                 v-on:click="selectScenario('EQ_1.0')">
-          <img class="scenarioPreview" src="@/assets/EQ_01.png"/>
+            <img class="scenarioPreview" src="@/assets/EQ_01.png"/>
         </button>
+        <div>
+          <label>Three-Band-EQ 1</label>
+        </div>
       </div>
-      <div class="two">
+      <div class="scenarioBlock">
         <button class="scenarioButton"
                 v-on:click="selectScenario('EQ_2.0')">
           <img class="scenarioPreview" src="@/assets/EQ_02.png"/>
         </button>
+        <div>
+          <label>Three-Band-EQ 2 (Bass Cut)</label>
+        </div>
       </div>
     </div>
     <div>
-      <div class="one">
+      <div class="scenarioBlock">
         <button class="scenarioButton"
                 v-on:click="selectScenario('VFF_1.0')">
-          <img class="scenarioPreview" src="@/assets/VFF_cut.png"/>
-        </button>
-      </div>
-      <div class="two">
-        <button class="scenarioButton"
-                v-on:click="selectScenario('VFF_1.1')">
           <img class="scenarioPreview" src="@/assets/VFF_nocut.png"/>
         </button>
+        <div>
+          <label>Volumetric Fade 1</label>
+        </div>
+      </div>
+      <div class="scenarioBlock">
+        <button class="scenarioButton"
+                v-on:click="selectScenario('VFF_1.1')">
+          <img class="scenarioPreview" src="@/assets/VFF_cut.png"/>
+        </button>
+        <div>
+          <label>Volumetric Fade 2 (Bass Cut)</label>
+        </div>
       </div>
     </div>
-  </section>
-  <section id="mixNameAndSend" v-if="previewSelected">
-    <div>
-      <input v-model="mixName" placeholder="Mix Name"/>
+  </div>
+  <div id="mixNameAndSend" v-if="previewSelected">
+    <label class="stepDescription">3. Name the Mix, Hit Submit and Download when it's ready</label>
+    <div class="flexContainer">
+      <div>
+        <input class="mixNameInput" v-model="mixName" placeholder="Mix Name"/>
+      </div>
+      <div class="mixSubmit">
+        <button class="submitButton" :disabled="mixName===''">Submit</button>
+      </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script lang="ts">
@@ -127,20 +147,14 @@ export default class MixCreate extends Vue {
 <style scoped>
 .spacer {
   width: 100%;
-  height: 20px;
+  height: 30px;
+}
+.stepDescription{
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 .audioSelect {
   margin: 10px;
-}
-.one {
-  float: left;
-  margin-left: 10%;
-  width: 25%;
-}
-.two {
-  float: right;
-  margin-right: 10%;
-  width: 25%;
 }
 .songInfo {
   width: 100px;
@@ -148,16 +162,41 @@ export default class MixCreate extends Vue {
   margin-left: 5px;
   margin-right: 5px;
 }
+.scenarioBlock{
+  display: inline-block;
+  height: 25%;
+  width: 25%;
+  margin: 10px;
+}
 .scenarioButton {
+  background-color: white;
   width: 100%;
-  height: 200px;
   margin: 10px;
 }
 .scenarioPreview {
   height: 100%;
+  width: 100%;
   align-content: center;
 }
+
 .mixNameInput{
-  width: 30%;
+  margin-left: 20%;
+  align-content: center;
+  flex-basis: 100px;
+  display: inline-block;
+  vertical-align: middle;
+}
+.mixSubmit{
+  margin: 10px;
+  display: inline-block;
+  vertical-align: middle;
+}
+.submitButton{
+  color: white;
+  font-size: 16px;
+  background-color: #00b9ff;
+  margin: 20px;
+  padding: 15px 30px;
+  border-radius: 4px;
 }
 </style>

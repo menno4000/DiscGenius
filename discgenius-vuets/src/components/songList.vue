@@ -31,33 +31,42 @@ export default class SongList extends Vue{
 <style scoped>
 .spacer {
   width: 100%;
-  height: 40px;
+  height: 20px;
 }
 .songDiv{
   width: 100%;
   margin-bottom: 20px;
 }
 .songNameLabel{
-  float: left;
+  display: inline-block;
+  vertical-align: middle;
   text-align: left;
   margin-left: 10%;
   width: 30%;
 }
 .songTempoLabel{
-  float: left;
+  display: inline-block;
+  vertical-align: middle;
   text-align: left;
   width: 5%;
   margin-left: 5%;
 }
 .songLengthLabel{
-  float: left;
+  display: inline-block;
+  vertical-align: middle;
   text-align: left;
   width: 5%;
   margin-left: 5%;
 }
 .deleteButton{
-  float:right;
-  margin-right: 15%;
+  display: inline-block;
+  vertical-align: middle;
   align-self: center;
+  color: white;
+  font-size: 16px;
+  background-color: #ff5d44;
+  margin: 20px;
+  padding: 15px 30px;
+  border-radius: 4px;
 }
 </style>
