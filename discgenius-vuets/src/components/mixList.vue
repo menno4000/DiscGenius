@@ -73,7 +73,7 @@ export default class MixList extends Vue{
   font-size: 16px;
   background-color: #00b9ff;
   margin: 20px;
-  padding: 15px 30px;
+  padding: 10px 20px;
   border-radius: 4px;
 }
 .deleteButton{
@@ -84,7 +84,7 @@ export default class MixList extends Vue{
   font-size: 16px;
   background-color: #ff5d44;
   margin: 20px;
-  padding: 15px 30px;
+  padding: 10px 20px;
   border-radius: 4px;
 }
 </style>

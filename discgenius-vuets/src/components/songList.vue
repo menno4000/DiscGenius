@@ -66,7 +66,7 @@ export default class SongList extends Vue{
   font-size: 16px;
   background-color: #ff5d44;
   margin: 20px;
-  padding: 15px 30px;
+  padding: 10px 20px;
   border-radius: 4px;
 }
 </style>

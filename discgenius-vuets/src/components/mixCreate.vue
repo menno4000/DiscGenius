@@ -34,6 +34,9 @@
   <div id="previewSelect" v-if="songsSelected">
     <label class="stepDescription">2. Select a Mix Scenario</label>
     <div>
+      <img class="legend" src="@/assets/legend.png"/>
+    </div>
+    <div>
       <div class="scenarioBlock">
         <button class="scenarioButton"
                 v-on:click="selectScenario('EQ_1.0')">
@@ -77,7 +80,7 @@
   <div id="mixNameAndSend" v-if="previewSelected">
     <label class="stepDescription">3. Name the Mix, Hit Submit and Download when it's ready</label>
     <div class="flexContainer">
-      <div>
+      <div class="mixSubmit">
         <input class="mixNameInput" v-model="mixName" placeholder="Mix Name"/>
       </div>
       <div class="mixSubmit">
@@ -168,6 +171,10 @@ export default class MixCreate extends Vue {
   width: 25%;
   margin: 10px;
 }
+.legend{
+  width: 140px;
+  height: 140px;
+}
 .scenarioButton {
   background-color: white;
   width: 100%;
@@ -178,13 +185,9 @@ export default class MixCreate extends Vue {
   width: 100%;
   align-content: center;
 }
-
 .mixNameInput{
-  margin-left: 20%;
   align-content: center;
   flex-basis: 100px;
-  display: inline-block;
-  vertical-align: middle;
 }
 .mixSubmit{
   margin: 10px;
@@ -197,6 +200,14 @@ export default class MixCreate extends Vue {
   background-color: #00b9ff;
   margin: 20px;
   padding: 15px 30px;
+  border-radius: 4px;
+}
+.submitButton:disabled{
+  color: white;
+  font-size: 16px;
+  background-color: grey;
+  margin: 20px;
+  padding: 10px 20px;
   border-radius: 4px;
 }
 </style>
