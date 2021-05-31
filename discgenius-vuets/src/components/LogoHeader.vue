@@ -1,15 +1,15 @@
 <template>
   <div id="header">
     <img alt="Logo" src="@/assets/dglogo_htw_tp.png">
-    <h1>{{title}}</h1>
-    <h4>{{subtitle}}</h4>
+    <h1>{{ title }}</h1>
+    <h4>{{ subtitle }}</h4>
   </div>
 </template>
 
 <script lang="ts">
-import { Vue } from 'vue-class-component';
+import {Vue} from 'vue-class-component';
 
-export default class LogoHeader extends Vue{
+export default class LogoHeader extends Vue {
   title = "DiscGenius"
   subtitle = "A DJ-Style Song-Mixing Application"
 }
@@ -17,7 +17,7 @@ export default class LogoHeader extends Vue{
 
 <style scoped>
 
-img{
+img {
   max-height: 150px;
   max-height: 150px;
 }

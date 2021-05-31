@@ -92,8 +92,8 @@
 
 <script lang="ts">
 import {Options, Vue} from 'vue-class-component';
-import {Song} from '../model/song';
-import {Mix} from '../model/mix';
+import {Song} from '@/model/song';
+import {Mix} from '@/model/mix';
 
 @Options({
   props: {

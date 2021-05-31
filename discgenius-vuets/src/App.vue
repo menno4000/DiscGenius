@@ -29,9 +29,9 @@
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
-import LogoHeader from './components/LogoHeader.vue';
-import Navigate from './components/Navigate.vue';
-import LoginState from "./components/LoginState.vue";
+import LogoHeader from '@/components/LogoHeader.vue';
+import Navigate from '@/components/Navigate.vue';
+import LoginState from "@/components/LoginState.vue";
 import FrontPage from "@/components/FrontPage.vue";
 import MixCreate from "@/components/MixCreate.vue";
 import SongList from "@/components/SongList.vue";
