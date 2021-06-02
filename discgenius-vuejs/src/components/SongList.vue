@@ -1,30 +1,29 @@
 <template>
-  <div class="spacer"/>
-  <div v-for="song in songs" :key="song.id">
-    <div class="songDiv">
-      <div class="songNameLabel">{{song.name}}</div>
-      <div class="songLengthLabel">{{song.length}}</div>
-      <div class="songTempoLabel">{{song.tempo}}</div>
-      <button class="deleteButton">
-        Delete
-      </button>
-    </div>
+  <div>
     <div class="spacer"/>
+    <div v-for="song in songs" :key="song.id">
+      <div class="songDiv">
+        <div class="songNameLabel">{{song.title}}</div>
+        <div class="songLengthLabel">{{song.length}}</div>
+        <div class="songTempoLabel">{{song.tempo}}</div>
+        <button class="deleteButton">
+          Delete
+        </button>
+      </div>
+      <div class="spacer"/>
+    </div>
   </div>
 </template>
 
-<script lang="ts">
-import { Options, Vue } from 'vue-class-component';
-import {Song} from "@/model/song";
+<script >
+import Song from "../model/Song";
 
-@Options({
+export default {
   props: {
-    songs: [Song]
+    songs: {
+      type: [Song]
+    }
   }
-})
-
-export default class SongList extends Vue{
-  songs!: [Song];
 }
 </script>
 
