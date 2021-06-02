@@ -2,9 +2,14 @@
   <div>
     <div class="spacer"/>
     <div id="songSelect">
-      <label class="stepDescription">1. Select Songs for the new Mix</label>
+      <div class="stepDescription">
+        <span >1. Select Songs for the new Mix</span>
+      </div>
       <div>
-        <select v-model="selected1" @change="selectFirstSong" class="audioSelect">
+        <select v-model="selected1"
+                  @change="selectFirstSong"
+                  class="audioSelect"
+                  outlined>
           <option v-for="song in songs"
                   :key="song.id"
                   :value="song">{{ song.title }}
@@ -28,7 +33,10 @@
         </label>
       </div>
       <div>
-        <select v-model="selected2" @change="selectSecondSong" class="audioSelect">
+        <select v-model="selected2"
+                  @change="selectSecondSong"
+                  class="audioSelect"
+                  outlined>
           <option v-for="song in songs"
                   :key="song.id"
                   :value="song">{{ song.title }}
@@ -51,21 +59,24 @@
           {{convertEntryPoint}}
         </label>
       </div>
-      <div>
+      <div class="tempoOverride">
         <label class="tempoOverrideLabel">Override Mix Tempo?</label>
         <input type="checkbox" class="tempoOverrideCheck" v-model="tempoOverride"/>
-        <input class="tempoOverrideInput" v-model="customTempo" placeholder="120.0" :disabled="tempoOverride === false"/>
+        <input class="tempoOverrideInput" v-model="mixTempo" :placeholder="mixTempo" :disabled="tempoOverride === false"/>
       </div>
     </div>
     <div id="previewSelect" v-if="songsSelected">
-      <label class="stepDescription">2. Select a Mix Scenario</label>
+      <div class="stepDescription">
+        <span>2. Select a Mix Scenario</span>
+      </div>
       <div>
         <img class="legend" src="@/assets/legend.png"/>
       </div>
       <div>
         <div class="scenarioBlock">
           <button class="scenarioButton"
-                  v-on:click="selectScenario('EQ_1.0')">
+                  v-on:click="selectScenario('EQ_1.0')"
+                  :disabled="scenario === 'EQ_1.0'">
             <img class="scenarioPreview" src="@/assets/EQ_01.png"/>
           </button>
           <div>
@@ -74,7 +85,8 @@
         </div>
         <div class="scenarioBlock">
           <button class="scenarioButton"
-                  v-on:click="selectScenario('EQ_2.0')">
+                  v-on:click="selectScenario('EQ_2.0')"
+                  :disabled="scenario === 'EQ_2.0'">
             <img class="scenarioPreview" src="@/assets/EQ_02.png"/>
           </button>
           <div>
@@ -85,7 +97,8 @@
       <div>
         <div class="scenarioBlock">
           <button class="scenarioButton"
-                  v-on:click="selectScenario('VFF_1.0')">
+                  v-on:click="selectScenario('VFF_1.0')"
+                  :disabled="scenario === 'VFF_1.0'">
             <img class="scenarioPreview" src="@/assets/VFF_nocut.png"/>
           </button>
           <div>
@@ -94,7 +107,8 @@
         </div>
         <div class="scenarioBlock">
           <button class="scenarioButton"
-                  v-on:click="selectScenario('VFF_1.1')">
+                  v-on:click="selectScenario('VFF_1.1')"
+                  :disabled="scenario === 'VFF_1.1'">
             <img class="scenarioPreview" src="@/assets/VFF_cut.png"/>
           </button>
           <div>
@@ -104,7 +118,9 @@
       </div>
     </div>
     <div id="mixNameAndSend" v-if="previewSelected">
-      <label class="stepDescription">3. Name the Mix, Hit Submit and Download when it's ready</label>
+      <div class="stepDescription">
+        <label >3. Name the Mix, Hit Submit and Download when it's ready</label>
+      </div>
       <div class="flexContainer">
         <div class="mixSubmit">
           <input class="mixNameInput" v-model="mixName" placeholder="Mix Name"/>
@@ -116,17 +132,15 @@
         </div>
         <div v-if="submitted" class="mixProgress">
           <vue-ellipse-progress :progress="calcedProgress"
-                                :legend-value="progress"
-                                :size="100"
+                                :legend-value="calcedProgress"
+                                :size="50"
                                 color="#76b900">
 
           </vue-ellipse-progress>
         </div>
-        <span>{{submitted}}</span>
-        <span>{{progress}}</span>
         <div v-if="submitted" class="mixDownload">
           <button class="downloadButton"
-                  :disabled="progress < 100">Download</button>
+                  :disabled="calcedProgress < 100">Download</button>
         </div>
       </div>
     </div>
@@ -144,11 +158,12 @@ export default{
       selected1 : new Song("stub", 0.0, 0.0, "0"),
       tempo1 : 0.0,
       length1 : 0.0,
+      numSongs1: 0,
       selected2 : new Song("stub", 0.0, 0.0, "0"),
       tempo2 : 0.0,
       length2 : 0.0,
+      numSongs2: 1,
       yeOldeStub : "",
-      numTracksSelected : 0,
       songsSelected : false,
       previewSelected : false,
       scenario : "",
@@ -157,18 +172,24 @@ export default{
       tempoOverride: false,
       customTempo: 120.0,
       entryPoint: 30.0,
-      exitPoint: 70.0
+      exitPoint: 70.0,
     }
   },
   computed: {
     convertExitPoint(){
-      return (this.exitPoint / 100)
+      return (this.exitPoint / 100);
     },
     convertEntryPoint(){
-      return (this.entryPoint / 100)
+      return (this.entryPoint / 100);
+    },
+    songs(){
+      return this.$store.state.songs;
+    },
+    mixes(){
+      return this.$store.getters.getAvailableMixes
     },
     calcedProgress() {
-      return this.progress;
+      return this.$store.state.currentProgress;
     },
     mixNumSongs(){
       let numSongs1 = 1;
@@ -193,39 +214,35 @@ export default{
       return this.length1 + adjustedSong2Length;
     },
     newMix(){
-      new Mix(this.mixName, this.newMixLength(), this.mixNumSongs(), this.mixTempo(), uuidv4())
-    }
-  },
-  props: {
-    songs:{
-      type: [Song]
-    },
-    mixes:{
-      type: [Mix]
-    }
-  },
-  watch: {
-    progress: {
-      handler: 'updateProgress'
     }
   },
   methods: {
     selectFirstSong() {
       this.tempo1 = this.selected1.tempo
       this.length1 = this.selected1.length
-      this.numTracksSelected += 1;
-      this.checkSongSelection();
+      if (this.selected1 instanceof Mix){
+        this.numSongs1 = this.selected1.numSongs
+      } else {
+        this.numSongs1 = 1
+      }
+      this.checkSongSelection()
+
     },
     selectSecondSong() {
-    this.tempo2 = this.selected2.tempo
-    this.length2 = this.selected2.length
-    this.numTracksSelected += 1;
-    this.checkSongSelection();
+      this.tempo2 = this.selected2.tempo
+      this.length2 = this.selected2.length
+      if (this.selected2 instanceof Mix){
+        this.numSongs2 = this.selected2.numSongs
+      } else {
+        this.numSongs2 = 1
+      }
+      this.checkSongSelection()
     },
     checkSongSelection() {
-      if (this.numTracksSelected === 2) {
-        this.songsSelected = true;
-      }
+      let numSongs = 0;
+      if (this.length1 > 0) numSongs++;
+      if (this.length2 > 0) numSongs++;
+      if (numSongs === 2) this.songsSelected = true
     },
     selectScenario(pName) {
       this.scenario = pName;
@@ -233,21 +250,15 @@ export default{
     },
     submit() {
       this.submitted = true;
-      function progressLoop (){
-        setTimeout(function (){
-          this.progress ++;
-          if(this.progress < 100){
-            progressLoop();
-          }
-        }, 100)
-      }
-      progressLoop();
-    },
-    updateProgress(newState) {
-      this.progress = newState
+      this.$store.dispatch('fakeProgress')
+      let newMix = new Mix(this.mixName, this.newMixLength, this.mixNumSongs, this.mixTempo, uuidv4())
+      this.$store.dispatch('submitMix', newMix)
     }
-  }
-
+  },
+  // beforeCreate() {
+  //   this.$store.dispatch('fetchMixes')
+  //   this.$store.dispatch('fetchAvailableMixes')
+  // }
 }
 </script>
 
@@ -257,11 +268,26 @@ export default{
   height: 30px;
 }
 .stepDescription{
-  margin-top: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  margin-top: 20px;
 }
 .audioSelect {
+  display: inline-block;
+  vertical-align: middle;
+  width: 200px;
   margin: 10px;
+  outline-color: grey;
+  outline-width: 1px;
+  padding: 5px;
+  background: lightgray;
+}
+.songInfo {
+  display: inline-block;
+  vertical-align: middle;
+  width: 100px;
+  text-align: center;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 .entryPointSlider{
   display: inline-block;
@@ -274,27 +300,22 @@ export default{
   width: 40px;
   text-align: center;
 }
+.tempoOverride{
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
 .tempoOverrideCheck{
   display: inline-block;
   vertical-align: middle;
   width: 40px;
   text-align: center;
 }
-.tempoOverrideCheck{
-  display: inline-block;
-  vertical-align: middle;
-}
+
 .tempoOverrideInput{
   display: inline-block;
   vertical-align: middle;
   text-align: center;
   width: 35px;
-}
-.songInfo {
-  width: 100px;
-  text-align: center;
-  margin-left: 5px;
-  margin-right: 5px;
 }
 .scenarioBlock{
   display: inline-block;
@@ -307,6 +328,12 @@ export default{
   height: 140px;
 }
 .scenarioButton {
+  background-color: lightgray;
+  width: 100%;
+  margin: 10px;
+  border-radius: 4px;
+}
+.scenarioButton:disabled {
   background-color: white;
   width: 100%;
   margin: 10px;

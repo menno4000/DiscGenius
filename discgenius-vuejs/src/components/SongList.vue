@@ -1,16 +1,20 @@
 <template>
   <div>
     <div class="spacer"/>
+    <div>
+      <button class="uploadButton" v-on:click="uploadSong()">
+        Upload New Song
+      </button>
+    </div>
     <div v-for="song in songs" :key="song.id">
       <div class="songDiv">
         <div class="songNameLabel">{{song.title}}</div>
         <div class="songLengthLabel">{{song.length}}</div>
         <div class="songTempoLabel">{{song.tempo}}</div>
-        <button class="deleteButton">
+        <button class="deleteButton" v-on:click="deleteSong(song)">
           Delete
         </button>
       </div>
-      <div class="spacer"/>
     </div>
   </div>
 </template>
@@ -19,11 +23,20 @@
 import Song from "../model/Song";
 
 export default {
-  props: {
-    songs: {
-      type: [Song]
+  computed: {
+    songs(){
+      return this.$store.state.songs;
+    }
+  },
+  methods: {
+    deleteSong(song){
+
+    },
+    uploadSong(song){
+
     }
   }
+
 }
 </script>
 
@@ -67,5 +80,13 @@ export default {
   margin: 20px;
   padding: 10px 20px;
   border-radius: 4px;
+}
+.uploadButton{
+  margin: 20px;
+  font-size: 16px;
+  background-color: #76b900;
+  border-radius: 4px;
+  color: white;
+  padding: 10px 20px;
 }
 </style>

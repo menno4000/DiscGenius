@@ -22,7 +22,6 @@
           Delete
         </button>
       </div>
-      <div class="spacer"/>
     </div>
   </div>
 </template>
@@ -31,12 +30,10 @@
 import Mix from "@/model/Mix";
 
 export default{
-  props: {
-    mixes:{
-      type: [Mix]
-    }
-  },
   computed: {
+    mixes(){
+      return this.$store.getters.getMixes;
+    },
     mixesWithProgress() {
       const mixesWithProg = []
       for (let i = 0, len = this.mixes.length; i < len; i++){
@@ -47,7 +44,13 @@ export default{
       }
       return mixesWithProg
     }
-  }
+  },
+  // created() {
+  //   this.$store.dispatch('fetchMixes');
+  // },
+  // mounted() {
+  //
+  // }
 }
 </script>
 
@@ -89,7 +92,8 @@ export default{
 .mixProgress{
   display: inline-block;
   vertical-align: middle;
-  margin-left: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
 }
 .downloadButton{
   display: inline-block;
@@ -97,6 +101,14 @@ export default{
   color: white;
   font-size: 16px;
   background-color: #00b9ff;
+  margin: 20px;
+  padding: 10px 20px;
+  border-radius: 4px;
+}
+.downloadButton:disabled{
+  color: white;
+  font-size: 16px;
+  background-color: grey;
   margin: 20px;
   padding: 10px 20px;
   border-radius: 4px;

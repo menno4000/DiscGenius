@@ -20,7 +20,7 @@
         creation.
       </div>
       <div class="frontPageDiv" v-if="!authState">
-        To get started, log in to or create an account and start creating mixes in your user storage. (Under Construction)
+        To get started, log in to or create an account and start creating mixes in your user storage (Under Construction).
       </div>
       <div class="frontPageDiv" v-else-if="authState">
         You are logged in! Happy mixing.
@@ -31,26 +31,17 @@
 
 <script>
 export default{
-  props: {
-    authState: {
-      default: false
+  computed:{
+    authState(){
+      return this.$store.state.authState;
     },
-  },
-  watch: {
-    authState:{
-      handler: 'updateAuthState'
-    }
-  },
-  methods: {
-    updateAuthState(newState) {
-      this.authState = newState
-    }
   }
 }
 </script>
 <style scoped>
 .frontPageDiv {
-  margin-bottom: 20px;
+  margin-top: 10px;
+  margin-bottom: 10px;
   margin-right: 10%;
   margin-left: 10%;
 }

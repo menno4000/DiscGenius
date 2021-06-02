@@ -14,18 +14,17 @@
 <script>
 
 export default{
-  props: {
-    authState: {
-      default: false
+  computed:{
+    authState(){
+      return this.$store.state.authState;
     },
-    username: {
-      default: 'john die'
+    username() {
+      return this.$store.state.username;
     }
   },
   methods: {
     doLogin() {
-      this.authState = true;
-      this.$emit('login')
+      this.$store.commit("login")
     }
   }
 }
