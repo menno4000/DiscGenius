@@ -16,7 +16,7 @@ let mixes_stub = [
   new Mix("Mix 1", 702, 2, 130, "m1", 100),
   new Mix("Mix 2", 1240, 3, 120, "m2", 55),
 ];
-let available_mixes = mixes_stub[0]
+let available_mixes = [mixes_stub[0]]
 export default new Vuex.Store({
   state: {
     currentProgress: 0,

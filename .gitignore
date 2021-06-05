@@ -41,7 +41,7 @@ dist/
 npm-debug.log
 yarn-error.log
 .DS_Store
-/webapp/package-lock.json
+/discgenius-vuejs/package-lock.json
 
 
 ### project based ###
