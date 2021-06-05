@@ -180,7 +180,9 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
     print("INFO - Mixing: Creation of a mix finished. Amount of frames: '%s', Length: '%sm'" % (
         len(left_mix_channel), util.get_length_out_of_frames(config, len(left_mix_channel))))
 
-    mix_array = np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
+    mix_array = [[dL, dR] for dL, dR in zip(left_mix_channel, right_mix_channel)]
+    mix_array = np.array(mix_array, dtype="float32")
+    # mix_array = np.array([left_mix_channel, right_mix_channel], dtype='float32', order='F')
 
     mix_name += ".wav"
     result_path = f"{config['mix_path']}/{mix_name}"

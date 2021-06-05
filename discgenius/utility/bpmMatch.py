@@ -2,6 +2,7 @@ from os import path
 
 import librosa
 from scipy import signal
+import soundfile as sf
 import aubio
 import numpy
 
@@ -26,8 +27,8 @@ def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
         return new_song_name
 
     sample_rate = song['frame_rate']
-    tempo_ratio = desired_bpm / bpm
-    new_rate = sample_rate / tempo_ratio
+    tempo_ratio = bpm / desired_bpm
+    new_rate = int(sample_rate * tempo_ratio)
 
     #song_0_resampled = scipy_resample(song['left_channel'], bpm/desired_bpm)
     #song_1_resampled = scipy_resample(song['right_channel'], bpm/desired_bpm)
@@ -35,9 +36,11 @@ def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
     song_0_resampled = librosa.resample(song['left_channel'], sample_rate, new_rate)
     song_1_resampled = librosa.resample(song['right_channel'], sample_rate, new_rate)
 
-    song_resampled = numpy.asfortranarray([song_0_resampled, song_1_resampled])
+    data_resampled = [[dL, dR] for dL, dR in zip(song_0_resampled, song_1_resampled)]
+    data_resampled = numpy.array(data_resampled, dtype='float32')
 
-    librosa.output.write_wav(new_filepath, song_resampled, sample_rate)
+    # librosa.output.write_wav(new_filepath, song_resampled, sample_rate)
+    sf.write(new_filepath, data_resampled, sample_rate)
     print(f"INFO - Saved adjusted song to '{new_filepath}'")
     return new_song_name
 

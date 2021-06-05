@@ -86,3 +86,12 @@ class TestAPIUpload(unittest.TestCase):
         assert f"{EXAMPLE_AUDIO}_{BPM}.{WAV_EXTENSION}" == response.json()['filename']
         assert os.path.isfile(f"{self.config['mp3_storage']}/{EXAMPLE_AUDIO}_{BPM}.mp3")
         assert os.path.isfile(f"{self.config['song_path']}/{EXAMPLE_AUDIO}_{BPM}.wav")
+
+    # the bpm detection method seems to not work with shortened files
+    # def test_upload_bpm_detection(self):
+    #     extension = "wav"
+    #     url_params = f"filename={EXAMPLE_AUDIO}&extension={extension}"
+    #     example_audio_wav = open(f"discgenius/tests/{EXAMPLE_AUDIO}.{extension}")
+    #     response = self.client.post(f"/upload?{url_params}", example_audio_wav)
+    #     assert 200 == response.status_code
+    #     assert any(char.isdigit() for char in response.json()['filename'])
