@@ -1,20 +1,39 @@
 import os
+import motor.motor_asyncio
 from os.path import isfile, join
 import uvicorn
 
 from fastapi import FastAPI, HTTPException, Body
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
+from fastapi_users import models
+from fastapi_users.db import MongoDBUserDatabase
 
 from . import controller
-from .utility import common, bpmMatch, validator
+from .utility import common, bpm_match, validator
 from .utility import utility as util
 from .utility import bpm_detection
 
-app = FastAPI()
+from fastapi_users.authentication import JWTAuthentication
+
+from uuid import uuid4
 
 config = common.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
+DATABASE_URL = "mondodb://localhost:27017"
+client = motor.motor_asyncio.AsyncIOMotorClient(
+    DATABASE_URL, uuidRepresentation="standard"
+)
+db = client["discgenius"]
+user_collection = db["users"]
+SECRET = config['secret']
+auth_backends = [JWTAuthentication(secret=SECRET,
+                                   lifetime_seconds=3600,
+                                   tokenUrl="auth/jwt/login")]
+
+app = FastAPI()
+
+user_db = MongoDBUserDatabase(models.BaseUserDB, user_collection)
 
 
 def raise_exception(status_code, detail):
@@ -29,6 +48,12 @@ def save_song(config, filename, song_data):
 def save_temp_song(config, filename, song_data):
     with open(f"{config['song_analysis_path']}/{filename}", mode='bx') as f:
         f.write(song_data)
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    users = mongo.db.users
+    login_user = users.find_one({'name': request.form['username']})
 
 
 @app.post("/upload")
@@ -177,7 +202,7 @@ async def adjust_tempo(song_name: str = Body(default=""),
     desired_bpm = validator.convert_bpm(config, bpm)
 
     song_name = ''.join(song_name.split('_')[:-1])
-    new_song_name = bpmMatch.adjust_tempo(config, song_name, old_bpm, desired_bpm)
+    new_song_name = bpm_match.adjust_tempo(config, song_name, old_bpm, desired_bpm)
 
     return {
         "filename": new_song_name,
