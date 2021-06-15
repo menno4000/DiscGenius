@@ -1,39 +1,121 @@
 import os
-import motor.motor_asyncio
 from os.path import isfile, join
-import uvicorn
+import jwt
 
-from fastapi import FastAPI, HTTPException, Body
+import uvicorn
+from fastapi import FastAPI, HTTPException, Body, Depends, Response
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
-from fastapi_users import models
+from motor.motor_asyncio import AsyncIOMotorClient
+from fastapi_users import FastAPIUsers
+from fastapi_users.authentication import JWTAuthentication
 from fastapi_users.db import MongoDBUserDatabase
 
+
 from . import controller
+from .utility import bpm_detection
 from .utility import common, bpm_match, validator
 from .utility import utility as util
-from .utility import bpm_detection
-
-from fastapi_users.authentication import JWTAuthentication
-
-from uuid import uuid4
+from .utility.fastapi.user_model import UserDB, UserCreate, UserUpdate, User
+from .utility.db import db
+from .utility.mongodb import create_start_app_handler, create_stop_app_handler
 
 config = common.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
-DATABASE_URL = "mondodb://localhost:27017"
-client = motor.motor_asyncio.AsyncIOMotorClient(
-    DATABASE_URL, uuidRepresentation="standard"
-)
-db = client["discgenius"]
-user_collection = db["users"]
+DATABASE_URL = "mongodb://127.0.0.1:27017"
 SECRET = config['secret']
-auth_backends = [JWTAuthentication(secret=SECRET,
-                                   lifetime_seconds=3600,
-                                   tokenUrl="auth/jwt/login")]
+DATABASE_NAME = config['db_name']
+USER_DB = config['user_col']
+TRACKS_DB = config['tracks_col']
+
+
+def on_after_register(user: UserDB, request: Request):
+    print(f"User {user.id} has registered.")
+    print(f"user track")
+
+
+def on_after_forgot_password(user: UserDB, token: str, request: Request):
+    print(f"User {user.id} has forgot their password. Reset token: {token}")
+
+
+def after_verification_request(user: UserDB, token: str, request: Request):
+    print(f"Verification requested for user {user.id}. Verification token: {token}")
+
+
+jwt_authentication = JWTAuthentication(
+    secret=SECRET, lifetime_seconds=3600, tokenUrl="auth/jwt/login"
+)
 
 app = FastAPI()
+_db = AsyncIOMotorClient(
+    DATABASE_URL,
+    maxPoolSize=10,
+    minPoolSize=10)
+_disc_db = _db[DATABASE_NAME]
+_user_col = _disc_db[USER_DB]
+_user_db = MongoDBUserDatabase(UserDB, _user_col)
+fastapi_users = FastAPIUsers(
+    _user_db,
+    [jwt_authentication],
+    User,
+    UserCreate,
+    UserUpdate,
+    UserDB
+)
+fastapi_users = None
 
-user_db = MongoDBUserDatabase(models.BaseUserDB, user_collection)
+
+
+
+@app.on_event("startup")
+async def startup():
+    await db.connect_to_database(path=DATABASE_URL)
+    disc_db = db.client[DATABASE_NAME]
+    user_col = disc_db[USER_DB]
+    user_db = MongoDBUserDatabase(UserDB, user_col)
+    global fastapi_users
+    fastapi_users = FastAPIUsers(
+        user_db,
+        [jwt_authentication],
+        User,
+        UserCreate,
+        UserUpdate,
+        UserDB
+    )
+
+    app.include_router(
+        fastapi_users.get_auth_router(jwt_authentication), prefix="/auth/jwt", tags=["auth"]
+    )
+    app.include_router(
+        fastapi_users.get_register_router(
+            after_register=on_after_register
+        ),
+        prefix="/auth",
+        tags=["auth"]
+    )
+    app.include_router(
+        fastapi_users.get_reset_password_router(
+            SECRET, after_forgot_password=on_after_forgot_password
+        ),
+        prefix="/auth",
+        tags=["auth"],
+    )
+    app.include_router(
+        fastapi_users.get_verify_router(
+            SECRET, after_verification_request=after_verification_request
+        ),
+        prefix="/auth",
+        tags=["auth"],
+    )
+    app.include_router(
+        fastapi_users.get_users_router(),
+        prefix="/users",
+        tags=["users"])
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await db.close_database_connection()
 
 
 def raise_exception(status_code, detail):
@@ -50,15 +132,19 @@ def save_temp_song(config, filename, song_data):
         f.write(song_data)
 
 
-@app.route('/login', methods=['POST'])
-def login():
-    users = mongo.db.users
-    login_user = users.find_one({'name': request.form['username']})
-
-
 @app.post("/upload")
-async def upload_song(request: Request, filename: str = "", extension: str = "", bpm: str = ""):
+async def upload_song(request: Request,
+                      filename: str = "",
+                      extension: str = "",
+                      bpm: str = "",
+                      ):
     body = await request.body()
+
+    auth_header = request.headers['Authorization']
+    current_token = auth_header.split(' ')[-1]
+    token_data = jwt.decode(current_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = token_data['user_id']
+    print(f"receiving upload from user {user_id}")
 
     if filename == "" or extension == "":
         raise_exception(400, "Please provide a filename and the extension (format) of the song as query parameters.")
@@ -95,6 +181,7 @@ async def upload_song(request: Request, filename: str = "", extension: str = "",
         "info": "Please refer to this name, when calling '/createMix'"
     }
 
+
 @app.post("/extendMix")
 async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
                     mix_name: str = Body(default=""),
@@ -119,31 +206,37 @@ async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(
     else:
         desired_bpm = bpm
 
-
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
 
     exit_point_modifier = entry_point / num_songs_a
     exit_point = 1 - exit_point_modifier
 
-
     if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
         raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
 
     bpm_a, bpm_b, desired_bpm = validator.validate_bpms_extend(config, song_b_name, bpm_a, desired_bpm)
 
-    transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config, transition_length, transition_midpoint, transition_points, desired_bpm, mix_a_name, song_b_name)
+    transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config,
+                                                                                                    transition_length,
+                                                                                                    transition_midpoint,
+                                                                                                    transition_points,
+                                                                                                    desired_bpm,
+                                                                                                    mix_a_name,
+                                                                                                    song_b_name)
     config['transition_length'] = transition_length
     config['transition_midpoint'] = transition_midpoint
 
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
 
     print(f"INFO - A new mix will get created from songs '{mix_a_name}' & '{song_b_name}'.")
-    print(f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
+    print(
+        f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
     print(f"       Mix name: '{mix_name}'.")
     print()
 
-    return controller.mix_two_files(config, mix_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_points, entry_point, exit_point, num_songs_a)
+    return controller.mix_two_files(config, mix_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name,
+                                    transition_points, entry_point, exit_point, num_songs_a)
 
 
 @app.post("/createMix")
@@ -174,18 +267,26 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
 
     bpm_a, bpm_b, desired_bpm = validator.validate_bpms_create(config, song_a_name, song_b_name, bpm)
 
-    transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config, transition_length, transition_midpoint, transition_points, desired_bpm, song_a_name, song_b_name)
+    transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config,
+                                                                                                    transition_length,
+                                                                                                    transition_midpoint,
+                                                                                                    transition_points,
+                                                                                                    desired_bpm,
+                                                                                                    song_a_name,
+                                                                                                    song_b_name)
     config['transition_length'] = transition_length
     config['transition_midpoint'] = transition_midpoint
 
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
 
     print(f"INFO - A new mix will get created from songs '{song_a_name}' & '{song_b_name}'.")
-    print(f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
+    print(
+        f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
     print(f"       Mix name: '{mix_name}'.")
     print()
 
-    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name, transition_points, entry_point, exit_point, num_songs_a)
+    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name,
+                                    scenario_name, transition_points, entry_point, exit_point, num_songs_a)
 
 
 @app.post("/adjustTempo")
@@ -238,5 +339,7 @@ async def get_mixes():
 async def get_scenarios():
     return util.get_scenarios(config, just_names=False)
 
+
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=9001, log_level='debug')
+

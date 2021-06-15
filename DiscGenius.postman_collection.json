@@ -1,0 +1,290 @@
+{
+	"info": {
+		"_postman_id": "23d704d8-4df3-48db-9df8-86631cd28155",
+		"name": "DiscGenius",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "upload song",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "/E:/Uni/DiscGenius/music/suki.wav"
+					}
+				},
+				"url": {
+					"raw": "{{ip}}/upload?filename=running&extension=wav",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"upload"
+					],
+					"query": [
+						{
+							"key": "filename",
+							"value": "running"
+						},
+						{
+							"key": "extension",
+							"value": "wav"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create mix",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"song_a_name\": \"rollin_124.0.wav\",\n\t\"song_b_name\": \"running_125.0.wav\",\n\t\"mix_name\": \"mix1_124.0\",\n\t\"scenario_name\": \"CF_1.0\",\n\t\"transition_length\": \"64\",\n    \"transition_midpoint\": \"32\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ip}}/createMix",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"createMix"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "extend mix",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"mix_a_name\": \"mix1_124.0_124.0_CF_1.0_32-32.wav\",\r\n\t\"song_b_name\": \"suki_121.0.wav\",\r\n\t\"mix_name\": \"mix1-1_124.0\",\r\n\t\"scenario_name\": \"CF_1.0\",\r\n\t\"transition_length\": \"64\",\r\n    \"transition_midpoint\": \"32\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ip}}/extendMix",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"extendMix"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get songs",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ip}}/songs",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"songs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get mix",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ip}}/getMix",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"getMix"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get mixes",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ip}}/mixes",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"mixes"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "adjust tempo",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"song_name\": \"andromeda_129.199.wav\",\n\t\"old_bpm\": \"129.199\",\n\t\"new_bpm\": \"123.047\"\n}"
+				},
+				"url": {
+					"raw": "{{ip}}/adjustTempo",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"adjustTempo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "register",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"{{email}}\",\r\n    \"password\": \"{{password}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "text"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ip}}/auth/register",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"auth",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "login",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "multipart/form-data",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "username",
+							"value": "{{email}}",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "{{password}}",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{ip}}/auth/jwt/login",
+					"host": [
+						"{{ip}}"
+					],
+					"path": [
+						"auth",
+						"jwt",
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "ip",
+			"value": "http://127.0.0.1:9001"
+		},
+		{
+			"key": "email",
+			"value": "test.ahooga@gahoogle.net"
+		},
+		{
+			"key": "password",
+			"value": "discgenius"
+		}
+	]
+}
