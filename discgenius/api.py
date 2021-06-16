@@ -6,11 +6,13 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Body, Depends, Response
 from starlette.requests import Request
 from starlette.responses import StreamingResponse
-from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import JWTAuthentication
 from fastapi_users.db import MongoDBUserDatabase
-
+from pymongo.collection import Collection
+from bson import ObjectId, Binary
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket, AsyncIOMotorGridIn
+import pickle
 
 from . import controller
 from .utility import bpm_detection
@@ -18,7 +20,8 @@ from .utility import common, bpm_match, validator
 from .utility import utility as util
 from .utility.fastapi.user_model import UserDB, UserCreate, UserUpdate, User
 from .utility.db import db
-from .utility.mongodb import create_start_app_handler, create_stop_app_handler
+from .utility.model import song_helper, response_model, error_response_model
+from .utility.audio_file_converter import convert_audio_to_wav
 
 config = common.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
@@ -43,35 +46,42 @@ def after_verification_request(user: UserDB, token: str, request: Request):
 
 
 jwt_authentication = JWTAuthentication(
-    secret=SECRET, lifetime_seconds=3600, tokenUrl="auth/jwt/login"
+    secret=SECRET, lifetime_seconds=60000, tokenUrl="auth/jwt/login"
 )
 
 app = FastAPI()
-_db = AsyncIOMotorClient(
-    DATABASE_URL,
-    maxPoolSize=10,
-    minPoolSize=10)
-_disc_db = _db[DATABASE_NAME]
-_user_col = _disc_db[USER_DB]
-_user_db = MongoDBUserDatabase(UserDB, _user_col)
-fastapi_users = FastAPIUsers(
-    _user_db,
-    [jwt_authentication],
-    User,
-    UserCreate,
-    UserUpdate,
-    UserDB
-)
+# _db = AsyncIOMotorClient(
+#     DATABASE_URL,
+#     maxPoolSize=10,
+#     minPoolSize=10)
+# _disc_db = _db[DATABASE_NAME]
+# _user_col = _disc_db[USER_DB]
+# _user_db = MongoDBUserDatabase(UserDB, _user_col)
+# fastapi_users = FastAPIUsers(
+#     _user_db,
+#     [jwt_authentication],
+#     User,
+#     UserCreate,
+#     UserUpdate,
+#     UserDB
+# )
+user_db: MongoDBUserDatabase = None
+song_db: Collection = None
 fastapi_users = None
-
-
-
+fs: AsyncIOMotorGridFSBucket = None
 
 @app.on_event("startup")
 async def startup():
     await db.connect_to_database(path=DATABASE_URL)
     disc_db = db.client[DATABASE_NAME]
+    global fs
+    fs = AsyncIOMotorGridFSBucket(disc_db)
+
+    global song_db
+    song_db = disc_db.get_collection("songs")
+
     user_col = disc_db[USER_DB]
+    global user_db
     user_db = MongoDBUserDatabase(UserDB, user_col)
     global fastapi_users
     fastapi_users = FastAPIUsers(
@@ -126,6 +136,8 @@ def save_song(config, filename, song_data):
     with open(f"{config['song_path']}/{filename}", mode='bx') as f:
         f.write(song_data)
 
+# def save_song_db(config, filename, song_data, user_db):
+
 
 def save_temp_song(config, filename, song_data):
     with open(f"{config['song_analysis_path']}/{filename}", mode='bx') as f:
@@ -140,12 +152,6 @@ async def upload_song(request: Request,
                       ):
     body = await request.body()
 
-    auth_header = request.headers['Authorization']
-    current_token = auth_header.split(' ')[-1]
-    token_data = jwt.decode(current_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
-    user_id = token_data['user_id']
-    print(f"receiving upload from user {user_id}")
-
     if filename == "" or extension == "":
         raise_exception(400, "Please provide a filename and the extension (format) of the song as query parameters.")
     if not body:
@@ -153,31 +159,64 @@ async def upload_song(request: Request,
     if extension not in config['audio_formats']:
         raise_exception(400, "Audio format not supported. Please provide one of the following formats: %s" % config[
             'audio_formats'])
+
+    # get auth data
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"receiving upload from user {user_id}")
+
     # create temp file to run bpm detection on
-    temp_filename = controller.generate_safe_song_temp_name(config, filename, extension)
-    save_temp_song(config, temp_filename, body)
+    _temp_filename = controller.generate_safe_song_temp_name(config, filename, extension)
+    save_temp_song(config, _temp_filename, body)
+
+    if extension == 'mp3':
+        temp_filename = controller.generate_safe_song_temp_name(config, filename, 'wav')
+        temp_mp3_path = f"{config['song_analysis_path']}/{_temp_filename}"
+        temp_wav_path = f"{config['song_analysis_path']}/{temp_filename}"
+        convert_audio_to_wav(config, temp_mp3_path, temp_wav_path)
+    else:
+        temp_filename = _temp_filename
+        temp_wav_path = f"{config['song_analysis_path']}/{temp_filename}"
 
     if bpm == "":
         bpm = bpm_detection.estimate_tempo(config, temp_filename, 3)
 
     bpm = validator.convert_bpm(config, bpm)
 
-    filename = controller.generate_safe_song_name(config, filename, extension, bpm)
-    save_song(config, filename, body)
+    _filename = controller.generate_safe_song_name(config, temp_filename, extension, bpm)
+
+    print("saving track to gridfs")
+    with open(temp_wav_path, 'rb') as f:
+        grid_in = fs.open_upload_stream(
+            _filename)
+        await grid_in.write(f.read())
+        await grid_in.close()
+
+    print("saving song object to song db")
+    song_id = await song_db.insert_one({
+        "title": str(_filename),
+        "bpm": float(bpm),
+        "user_id": str(user_id),
+    })
+
+    save_song(config, _filename, body)
 
     # remove bpm detection temp files
-    os.remove(f"{config['song_analysis_path']}/{temp_filename}")
+    os.remove(temp_mp3_path)
+    os.remove(temp_wav_path)
 
     if not extension == "wav":
-        controller.create_wav_from_audio(config, filename, extension)
+        controller.create_wav_from_audio(config, _filename, extension)
 
-        filename = filename[:-(len(extension))] + "wav"
+        filename = _filename[:-(len(extension))] + "wav"
         return {
-            "filename": filename,
+            "filename": _filename,
             "info": "'.wav file' was created. Please refer to this file when calling /createMix."
         }
     return {
-        "filename": filename,
+        "filename": _filename,
         "info": "Please refer to this name, when calling '/createMix'"
     }
 
@@ -218,11 +257,7 @@ async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(
     bpm_a, bpm_b, desired_bpm = validator.validate_bpms_extend(config, song_b_name, bpm_a, desired_bpm)
 
     transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config,
-                                                                                                    transition_length,
-                                                                                                    transition_midpoint,
-                                                                                                    transition_points,
-                                                                                                    desired_bpm,
-                                                                                                    mix_a_name,
+                                                mix_a_name,
                                                                                                     song_b_name)
     config['transition_length'] = transition_length
     config['transition_midpoint'] = transition_midpoint
@@ -326,8 +361,23 @@ async def get_mix(name: str = ""):
 
 
 @app.get("/songs")
-async def get_songs():
-    return [f for f in os.listdir(config['song_path']) if isfile(join(config['song_path'], f)) and '.wav' in f]
+async def get_songs(request: Request):
+    # get auth data
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"receiving upload from user {user_id}")
+    songs = []
+    cursor = song_db.find({"user_id": f"{user_id}"})
+    async for song in cursor:
+        songs.append(song_helper(song))
+
+    if songs:
+        return response_model(songs, f"retrieved {len(songs)} songs.")
+    else:
+        return response_model(songs, "no songs present.")
+    # return [f for f in os.listdir(config['song_path']) if isfile(join(config['song_path'], f)) and '.wav' in f]
 
 
 @app.get("/mixes")
