@@ -7,6 +7,7 @@ import os
 
 
 def convert_wav_to_mp3(config, input_path, output_path):
+    print("INFO - Converting mp3 to wav...")
     cmd = f"{config['ffmpeg_path']}/ffmpeg -i \"{input_path}\" -codec:a libmp3lame -b:s {config['mp3_bitrate']}k \"{output_path}\""
     os.system(cmd)
 

@@ -7,7 +7,7 @@ from . import mixer
 from . import analysis
 from .utility import audio_file_converter as converter
 from .utility import utility as util
-from .utility import bpmMatch
+from .utility import bpm_match
 
 
 def generate_safe_song_name(config, filename, extension, bpm):
@@ -80,9 +80,9 @@ def mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, m
 
     # 1 match tempo of both songs before analysis
     if desired_bpm != bpm_a:
-        song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_desired(config, song_a, song_b, desired_bpm, bpm_a, bpm_b)
+        song_a_adjusted, song_b_adjusted = bpm_match.match_bpm_desired(config, song_a, song_b, desired_bpm, bpm_a, bpm_b)
     else:
-        song_a_adjusted, song_b_adjusted = bpmMatch.match_bpm_first(config, song_a, bpm_a, song_b, bpm_b)
+        song_a_adjusted, song_b_adjusted = bpm_match.match_bpm_first(config, song_a, bpm_a, song_b, bpm_b)
 
     # 2. analyse songs
     if transition_points:

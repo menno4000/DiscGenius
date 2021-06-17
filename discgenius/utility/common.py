@@ -79,7 +79,10 @@ def get_config(content_path):
         'clip_size': get_int_parameter(parser, section, 'clip_size'),
         'step_size': get_int_parameter(parser, section, 'step_size'),
         'min_segment_time': get_int_parameter(parser, section, 'min_segment_time'),
-
+        'secret': get_string_parameter(parser, section, 'secret'),
+        'db_name': get_string_parameter(parser, section, 'db_name'),
+        'user_col': get_string_parameter(parser, section, 'user_col'),
+        'tracks_col': get_string_parameter(parser, section, 'tracks_col'),
 
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
         'song_path': get_string_parameter(parser, "PATHS", 'song_path'),
