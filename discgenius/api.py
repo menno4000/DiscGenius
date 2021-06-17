@@ -12,7 +12,7 @@ from fastapi_users.db import MongoDBUserDatabase
 from pymongo.collection import Collection
 from bson import ObjectId, Binary
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket, AsyncIOMotorGridIn
-import pickle
+import shutil
 
 from . import controller
 from .utility import bpm_detection
@@ -20,7 +20,7 @@ from .utility import common, bpm_match, validator
 from .utility import utility as util
 from .utility.fastapi.user_model import UserDB, UserCreate, UserUpdate, User
 from .utility.db import db
-from .utility.model import song_helper, response_model, error_response_model
+from .utility.model import song_helper, mix_helper, response_model, error_response_model
 from .utility.audio_file_converter import convert_audio_to_wav
 
 config = common.get_config('./content.ini')
@@ -29,7 +29,8 @@ DATABASE_URL = "mongodb://127.0.0.1:27017"
 SECRET = config['secret']
 DATABASE_NAME = config['db_name']
 USER_DB = config['user_col']
-TRACKS_DB = config['tracks_col']
+SONGS_DB = config['tracks_col']
+MIX_DB = config['mixes_col']
 
 
 def on_after_register(user: UserDB, request: Request):
@@ -67,8 +68,10 @@ app = FastAPI()
 # )
 user_db: MongoDBUserDatabase = None
 song_db: Collection = None
+mix_db: Collection = None
 fastapi_users = None
 fs: AsyncIOMotorGridFSBucket = None
+
 
 @app.on_event("startup")
 async def startup():
@@ -78,7 +81,10 @@ async def startup():
     fs = AsyncIOMotorGridFSBucket(disc_db)
 
     global song_db
-    song_db = disc_db.get_collection("songs")
+    song_db = disc_db.get_collection(SONGS_DB)
+
+    global mix_db
+    mix_db = disc_db.get_collection(MIX_DB)
 
     user_col = disc_db[USER_DB]
     global user_db
@@ -169,6 +175,7 @@ async def upload_song(request: Request,
 
     # create temp file to run bpm detection on
     _temp_filename = controller.generate_safe_song_temp_name(config, filename, extension)
+    temp_mp3_path = ""
     save_temp_song(config, _temp_filename, body)
 
     if extension == 'mp3':
@@ -185,7 +192,7 @@ async def upload_song(request: Request,
 
     bpm = validator.convert_bpm(config, bpm)
 
-    _filename = controller.generate_safe_song_name(config, temp_filename, extension, bpm)
+    _filename = controller.generate_safe_song_name(config, filename, 'wav', bpm)
 
     print("saving track to gridfs")
     with open(temp_wav_path, 'rb') as f:
@@ -194,23 +201,34 @@ async def upload_song(request: Request,
         await grid_in.write(f.read())
         await grid_in.close()
 
+    if temp_mp3_path:
+        with open(temp_mp3_path, 'rb') as f:
+            grid_in = fs.open_upload_stream(
+                _temp_filename)
+            await grid_in.write(f.read())
+            await grid_in.close()
+
     print("saving song object to song db")
-    song_id = await song_db.insert_one({
+    song_data = {
         "title": str(_filename),
         "bpm": float(bpm),
         "user_id": str(user_id),
-    })
-
-    save_song(config, _filename, body)
+    }
+    if temp_mp3_path:
+        song_data['title_mp3'] = _temp_filename
+    song_id = await song_db.insert_one(song_data)
 
     # remove bpm detection temp files
-    os.remove(temp_mp3_path)
-    os.remove(temp_wav_path)
+    if temp_mp3_path:
+        os.remove(temp_mp3_path)
+        shutil.move(temp_wav_path, f"{config['song_path']}/{_filename}")
+    else:
+        save_song(config, _filename, body)
 
     if not extension == "wav":
-        controller.create_wav_from_audio(config, _filename, extension)
-
-        filename = _filename[:-(len(extension))] + "wav"
+        # controller.create_wav_from_audio(config, _filename, extension)
+        #
+        # filename = _filename[:-(len(extension))] + "wav"
         return {
             "filename": _filename,
             "info": "'.wav file' was created. Please refer to this file when calling /createMix."
@@ -275,28 +293,67 @@ async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(
 
 
 @app.post("/createMix")
-async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
-              mix_name: str = Body(default=""),
-              scenario_name: str = Body(default="EQ_1.0"),
-              bpm: float = Body(default=0),
-              transition_length: int = Body(default=32),
-              transition_midpoint: int = Body(default=16),
-              transition_points: dict = Body(default=None),
-              entry_point: float = Body(default=config['mix_area'])):
+async def mix(request: Request,
+              song_a_name: str = "",
+              song_b_name: str = "",
+              mix_name: str = "",
+              scenario_name: str = "EQ_1.0",
+              bpm: float = 0,
+              transition_length: int = 32,
+              transition_midpoint: int = 16,
+              transition_points: dict = None,
+              num_songs_a: int = 1,
+              num_songs_b: int = 1,
+              exit_point: float = config['mix_area'],
+              entry_point: float = config['mix_area']):
+
+    # get auth data
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"receiving mix request from user {user_id}")
+
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(status_code=422, detail=util.read_api_detail(config))
 
-    if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
-            f"{config['song_path']}/{song_b_name}"):
-        raise_exception(404, "One of the two given songs could not be found. "
-                             "Please check using GET '/songs' which songs exist.")
+    _song_a = await song_db.find_one({"title": str(song_a_name)})
+    # _song_a = song_helper(_song_a)
+    if not _song_a:
+        raise_exception(404, "track A could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
+
+    _song_b = await song_db.find_one({"title": str(song_b_name)})
+    # _song_b = song_helper(_song_b)
+    if not _song_b:
+        raise_exception(404, "track B could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
+
+    if num_songs_a > 1:
+        exit_point = exit_point / num_songs_a
+    #     if not os.path.isfile(f"{config['mix_path']}/{song_a_name}"):
+    #         raise_exception(404, "mix A could not be found. Please check using GET '/mixes' which songs exist.")
+    # else:
+    #     if not os.path.isfile(f"{config['song_path']}/{song_a_name}"):
+    #         raise_exception(404, "song A could not be found. Please check using GET '/songs' which songs exist.")
+    if num_songs_b > 1:
+        entry_point = entry_point / num_songs_b
+    #     if not os.path.isfile(f"{config['mix_path']}/{song_b_name}"):
+    #         raise_exception(404, "mix B could not be found. Please check using GET '/mixes' which songs exist.")
+    # else:
+    #     if not os.path.isfile(f"{config['song_path']}/{song_b_name}"):
+    #         raise_exception(404, "song B could not be found. Please check using GET '/songs' which songs exist.")
+    #
+    # if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
+    #         f"{config['song_path']}/{song_b_name}"):
+    #     raise_exception(404, "One of the two given songs could not be found. "
+    #                          "Please check using GET '/songs' which songs exist.")
 
     num_songs_a = 1
 
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
 
-    exit_point = 1 - entry_point
+    exit_point = 1 - exit_point
+
     if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
         raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
 
@@ -314,14 +371,39 @@ async def mix(song_a_name: str = Body(default=""), song_b_name: str = Body(defau
 
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
 
+    print("saving initial mix object")
+    mix_id = await mix_db.insert_one({
+        "title": str(mix_name),
+        "bpm": float(desired_bpm),
+        "num_songs": int((num_songs_a+num_songs_b)),
+        "transition_length": int(transition_length),
+        "transition_midpoint": int(transition_midpoint),
+        "user_id": str(user_id),
+        "progress": int(10)
+    })
+
+
     print(f"INFO - A new mix will get created from songs '{song_a_name}' & '{song_b_name}'.")
     print(
         f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
     print(f"       Mix name: '{mix_name}'.")
     print()
 
-    return controller.mix_two_files(config, song_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name,
-                                    scenario_name, transition_points, entry_point, exit_point, num_songs_a)
+    return await controller.mix_two_files(config,
+                                          song_a_name,
+                                          song_b_name,
+                                          bpm_a,
+                                          bpm_b,
+                                          desired_bpm,
+                                          mix_name,
+                                          scenario_name,
+                                          transition_points,
+                                          entry_point,
+                                          exit_point,
+                                          num_songs_a,
+                                          mix_id.inserted_id,
+                                          mix_db,
+                                          fs)
 
 
 @app.post("/adjustTempo")
@@ -367,7 +449,7 @@ async def get_songs(request: Request):
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"receiving upload from user {user_id}")
+    print(f"providing song list request from user {user_id}")
     songs = []
     cursor = song_db.find({"user_id": f"{user_id}"})
     async for song in cursor:
@@ -380,9 +462,56 @@ async def get_songs(request: Request):
     # return [f for f in os.listdir(config['song_path']) if isfile(join(config['song_path'], f)) and '.wav' in f]
 
 
+@app.delete("/songs")
+async def delete_song(request: Request, target_id: str = ""):
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"providing song list request for user {user_id}")
+    songs = []
+    cursor = song_db.find({
+        "user_id": f"{user_id}"})
+    async for song in cursor:
+        if song['_id'] == ObjectId(target_id):
+            songs.append(song_helper(song))
+    if songs:
+        if len(songs) < 2:
+            song_filename = songs[0]['title']
+            song_file_id = await fs.upload_from_stream(song_filename, b"")
+            await fs.delete(song_file_id)
+            await song_db.delete_one({
+                "_id": ObjectId(target_id)})
+
+            song_path = f"{config['song_path']}/{song_filename}"
+            if os.path.isfile(song_path):
+                os.remove(song_path)
+
+            return response_model(songs[0], f"Song with id {target_id} deleted")
+        else:
+            return error_response_model("Internal Server Error", 500, f"Multiple options for song id{target_id}")
+    else:
+        return error_response_model("Not Found", 404, f"Song with id {target_id} does not exist")
+
+
 @app.get("/mixes")
-async def get_mixes():
-    return [f for f in os.listdir(config['mix_path']) if isfile(join(config['mix_path'], f)) and '.mp3' in f]
+async def get_mixes(request: Request):
+    # get auth data
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"providing song list request from user {user_id}")
+    mixes = []
+    cursor = mix_db.find({"user_id": f"{user_id}"})
+    async for mix in cursor:
+        mixes.append(mix_helper(mix))
+
+    if mixes:
+        return response_model(mixes, f"retrieved {len(mixes)} mixes.")
+    else:
+        return response_model(mixes, "no mixes present.")
+    # return [f for f in os.listdir(config['mix_path']) if isfile(join(config['mix_path'], f)) and '.mp3' in f]
 
 
 @app.get("/scenarios")

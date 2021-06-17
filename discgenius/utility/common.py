@@ -83,6 +83,7 @@ def get_config(content_path):
         'db_name': get_string_parameter(parser, section, 'db_name'),
         'user_col': get_string_parameter(parser, section, 'user_col'),
         'tracks_col': get_string_parameter(parser, section, 'tracks_col'),
+        'mixes_col': get_string_parameter(parser, section, 'mixes_col'),
 
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
         'song_path': get_string_parameter(parser, "PATHS", 'song_path'),
