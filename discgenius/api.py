@@ -1,18 +1,22 @@
 import os
-from os.path import isfile, join
 import jwt
+import shutil
+import time
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Body, Depends, Response
+from fastapi import FastAPI, HTTPException, Body, Depends, Response, BackgroundTasks
 from starlette.requests import Request
-from starlette.responses import StreamingResponse
+from starlette.responses import FileResponse
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import JWTAuthentication
 from fastapi_users.db import MongoDBUserDatabase
 from pymongo.collection import Collection
 from bson import ObjectId, Binary
-from motor.motor_asyncio import AsyncIOMotorGridFSBucket, AsyncIOMotorGridIn
-import shutil
+from uuid import UUID, uuid4
+from typing import Dict
+from pydantic import BaseModel, Field
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket, AsyncIOMotorClient, AsyncIOMotorDatabase
+from http import HTTPStatus
 
 from . import controller
 from .utility import bpm_detection
@@ -50,6 +54,7 @@ jwt_authentication = JWTAuthentication(
     secret=SECRET, lifetime_seconds=60000, tokenUrl="auth/jwt/login"
 )
 
+# jobs: Dict[UUID, Job] = {}
 app = FastAPI()
 # _db = AsyncIOMotorClient(
 #     DATABASE_URL,
@@ -67,15 +72,46 @@ app = FastAPI()
 #     UserDB
 # )
 user_db: MongoDBUserDatabase = None
+track_client: AsyncIOMotorClient = None
 song_db: Collection = None
 mix_db: Collection = None
 fastapi_users = None
 fs: AsyncIOMotorGridFSBucket = None
 
 
+# async def chunk_generator(grid_out):
+#     while True:
+#         # chunk = await grid_out.read(1024)
+#         chunk = await grid_out.readchunk()
+#         if not chunk:
+#             break
+#         yield chunk
+
+
+async def download_file(file_id):
+    """Returns iterator over AsyncIOMotorGridOut object"""
+    # grid_out = await fs.open_download_stream({'filename': file_id})
+    # return chunk_generator(grid_out)
+    cursor = fs.find({"filename": file_id})
+    song_data = b""
+    async for grid_data in cursor:
+        song_data = grid_data.read()
+    with open(file_id, 'wb') as f:
+        f.write(song_data)
+    return file_id
+
+
+async def clean_up_file(file_id):
+    time.sleep(200)
+    os.remove(file_id)
+
+
 @app.on_event("startup")
 async def startup():
     await db.connect_to_database(path=DATABASE_URL)
+    global track_client
+    track_client = db.client
+    global disc_db
     disc_db = db.client[DATABASE_NAME]
     global fs
     fs = AsyncIOMotorGridFSBucket(disc_db)
@@ -132,6 +168,7 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     await db.close_database_connection()
+    app.state.executor.shutdown()
 
 
 def raise_exception(status_code, detail):
@@ -141,8 +178,6 @@ def raise_exception(status_code, detail):
 def save_song(config, filename, song_data):
     with open(f"{config['song_path']}/{filename}", mode='bx') as f:
         f.write(song_data)
-
-# def save_song_db(config, filename, song_data, user_db):
 
 
 def save_temp_song(config, filename, song_data):
@@ -239,61 +274,62 @@ async def upload_song(request: Request,
     }
 
 
-@app.post("/extendMix")
-async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
-                    mix_name: str = Body(default=""),
-                    scenario_name: str = Body(default="EQ_1.0"),
-                    bpm: float = Body(default=0),
-                    transition_length: int = Body(default=32),
-                    transition_midpoint: int = Body(default=16),
-                    transition_points: dict = Body(default=None),
-                    entry_point: float = Body(default=config['mix_area'])):
-    if mix_a_name == "" or song_b_name == "" or scenario_name == "":
-        raise_exception(status_code=422, detail=util.read_api_detail(config))
+# @app.post("/extendMix")
+# async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
+#                     mix_name: str = Body(default=""),
+#                     scenario_name: str = Body(default="EQ_1.0"),
+#                     bpm: float = Body(default=0),
+#                     transition_length: int = Body(default=32),
+#                     transition_midpoint: int = Body(default=16),
+#                     transition_points: dict = Body(default=None),
+#                     entry_point: float = Body(default=config['mix_area'])):
+#     if mix_a_name == "" or song_b_name == "" or scenario_name == "":
+#         raise_exception(status_code=422, detail=util.read_api_detail(config))
+#
+#     if not os.path.isfile(f"{config['mix_path']}/{mix_a_name}") or not os.path.isfile(
+#             f"{config['song_path']}/{song_b_name}"):
+#         raise_exception(404, "One of the two given songs could not be found. "
+#                              "Please check using GET '/songs' which songs exist.")
+#
+#     # TODO retrieve number of included songs from song description json
+#     num_songs_a, bpm_a = util.read_mix_content_data(config, mix_a_name)
+#     if bpm == 0:
+#         desired_bpm = bpm_a
+#     else:
+#         desired_bpm = bpm
+#
+#     if scenario_name not in SCENARIOS:
+#         raise_exception(422, "Transition scenario could not be found.")
+#
+#     exit_point_modifier = entry_point / num_songs_a
+#     exit_point = 1 - exit_point_modifier
+#
+#     if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
+#         raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
+#
+#     bpm_a, bpm_b, desired_bpm = validator.validate_bpms_extend(config, song_b_name, bpm_a, desired_bpm)
+#
+#     transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config,
+#                                                 mix_a_name,
+#                                                                                                     song_b_name)
+#     config['transition_length'] = transition_length
+#     config['transition_midpoint'] = transition_midpoint
+#
+#     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
+#
+#     print(f"INFO - A new mix will get created from songs '{mix_a_name}' & '{song_b_name}'.")
+#     print(
+#         f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
+#     print(f"       Mix name: '{mix_name}'.")
+#     print()
+#
+#     return controller.mix_two_files(config, mix_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name,
+#                                     transition_points, entry_point, exit_point, num_songs_a)
 
-    if not os.path.isfile(f"{config['mix_path']}/{mix_a_name}") or not os.path.isfile(
-            f"{config['song_path']}/{song_b_name}"):
-        raise_exception(404, "One of the two given songs could not be found. "
-                             "Please check using GET '/songs' which songs exist.")
 
-    # TODO retrieve number of included songs from song description json
-    num_songs_a, bpm_a = util.read_mix_content_data(config, mix_a_name)
-    if bpm == 0:
-        desired_bpm = bpm_a
-    else:
-        desired_bpm = bpm
-
-    if scenario_name not in SCENARIOS:
-        raise_exception(422, "Transition scenario could not be found.")
-
-    exit_point_modifier = entry_point / num_songs_a
-    exit_point = 1 - exit_point_modifier
-
-    if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
-        raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
-
-    bpm_a, bpm_b, desired_bpm = validator.validate_bpms_extend(config, song_b_name, bpm_a, desired_bpm)
-
-    transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config,
-                                                mix_a_name,
-                                                                                                    song_b_name)
-    config['transition_length'] = transition_length
-    config['transition_midpoint'] = transition_midpoint
-
-    mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
-
-    print(f"INFO - A new mix will get created from songs '{mix_a_name}' & '{song_b_name}'.")
-    print(
-        f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
-    print(f"       Mix name: '{mix_name}'.")
-    print()
-
-    return controller.mix_two_files(config, mix_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name,
-                                    transition_points, entry_point, exit_point, num_songs_a)
-
-
-@app.post("/createMix")
+@app.post("/createMix", status_code=HTTPStatus.ACCEPTED)
 async def mix(request: Request,
+              background_tasks: BackgroundTasks,
               song_a_name: str = "",
               song_b_name: str = "",
               mix_name: str = "",
@@ -305,7 +341,8 @@ async def mix(request: Request,
               num_songs_a: int = 1,
               num_songs_b: int = 1,
               exit_point: float = config['mix_area'],
-              entry_point: float = config['mix_area']):
+              entry_point: float = config['mix_area'],
+              ):
 
     # get auth data
     auth_header = request.headers['Authorization']
@@ -389,21 +426,46 @@ async def mix(request: Request,
     print(f"       Mix name: '{mix_name}'.")
     print()
 
-    return await controller.mix_two_files(config,
-                                          song_a_name,
-                                          song_b_name,
-                                          bpm_a,
-                                          bpm_b,
-                                          desired_bpm,
-                                          mix_name,
-                                          scenario_name,
-                                          transition_points,
-                                          entry_point,
-                                          exit_point,
-                                          num_songs_a,
-                                          mix_id.inserted_id,
-                                          mix_db,
-                                          fs)
+    # new_task = Job()
+    # jobs[new_task.uid] = new_task
+    param = {
+        'config': config,
+        'song_a_name': song_a_name,
+        'song_b_name': song_b_name,
+        'bpm_a': bpm_a,
+        'bpm_b': bpm_b,
+        'desired_bpm': desired_bpm,
+        'mix_name': mix_name,
+        'scenario_name': scenario_name,
+        'transition_points': transition_points,
+        'exit_point': exit_point,
+        'entry_point': entry_point,
+        'num_songs_a': num_songs_a,
+        'num_songs_b': num_songs_b,
+        'mix_id': mix_id.inserted_id,
+        'mix_db': mix_db,
+        'fs': fs
+    }
+
+    background_tasks.add_task(controller.mix_two_files, param)
+    return {"message": f"Mix creation started: ID: {mix_id.inserted_id} "}
+    # return new_task
+
+    # return await controller.mix_two_files(config,
+    #                                       song_a_name,
+    #                                       song_b_name,
+    #                                       bpm_a,
+    #                                       bpm_b,
+    #                                       desired_bpm,
+    #                                       mix_name,
+    #                                       scenario_name,
+    #                                       transition_points,
+    #                                       entry_point,
+    #                                       exit_point,
+    #                                       num_songs_a,
+    #                                       mix_id.inserted_id,
+    #                                       mix_db,
+    #                                       fs)
 
 
 @app.post("/adjustTempo")
@@ -429,17 +491,44 @@ async def adjust_tempo(song_name: str = Body(default=""),
 
 
 @app.get("/getMix")
-async def get_mix(name: str = ""):
+async def get_mix(background_tasks: BackgroundTasks, name: str = ""):
+    if name == "":
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+    file = await download_file(name)
+    if file:
+        file_suffix = name.split('.')[-1]
+        if file_suffix == 'mp3':
+            content_type = 'audio/mpeg'
+        elif file_suffix == 'wav':
+            content_type = 'audio/wav'
+        else:
+            raise HTTPException(status_code=422, detail="File ending not supported.")
+        response = FileResponse(file, media_type=content_type)
+        background_tasks.add_task(clean_up_file, file)
+        return response
+    else:
+        return error_response_model("Not Found", "404", "Mix not found")
+
+
+@app.get("/getSong")
+async def get_song(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
         raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
 
-    mix_path = f"{config['mix_path']}/{name}"
-    if not os.path.isfile(mix_path):
-        raise HTTPException(status_code=404, detail="Mix not found. Please check under GET '/mixes' which mixes exist.")
-
-    mix = open(mix_path, 'rb')
-    response = StreamingResponse(mix, media_type='audio/mpeg')
-    return response
+    file = await download_file(name)
+    if file:
+        file_suffix = name.split('.')[-1]
+        if file_suffix == 'mp3':
+            content_type = 'audio/mpeg'
+        elif file_suffix == 'wav':
+            content_type = 'audio/wav'
+        else:
+            raise HTTPException(status_code=422, detail="File ending not supported.")
+        response = FileResponse(file, media_type=content_type)
+        background_tasks.add_task(clean_up_file, file)
+        return response
+    else:
+        return error_response_model("Not Found", "404", "Song not found")
 
 
 @app.get("/songs")
@@ -512,6 +601,49 @@ async def get_mixes(request: Request):
     else:
         return response_model(mixes, "no mixes present.")
     # return [f for f in os.listdir(config['mix_path']) if isfile(join(config['mix_path'], f)) and '.mp3' in f]
+
+
+@app.delete("/mixes")
+async def delete_mixes(request: Request, target_id: str = ""):
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"providing song list request for user {user_id}")
+    mixes = []
+    cursor = mix_db.find({
+        "user_id": f"{user_id}"})
+    async for mix in cursor:
+        if mix['_id'] == ObjectId(target_id):
+            mixes.append(song_helper(mix))
+    if mixes:
+        if len(mixes) < 2:
+            mix_filename = mixes[0]['title']
+            mix_file_id = await fs.upload_from_stream(mix_filename, b"")
+            await fs.delete(mix_file_id)
+
+            mix_path = f"{config['mix_path']}/{mix_filename}"
+            if os.path.isfile(mix_path):
+                os.remove(mix_path)
+
+            if 'title_mp3' in mixes[0]:
+                mix_filename_mp3 = mixes[0]['title_mp3']
+                mix_file_id_mp3 = await fs.upload_from_stream(mix_filename, b"")
+                await fs.delete(mix_file_id_mp3)
+                await mix_db.delete_one({
+                    "_id": ObjectId(target_id)})
+                mix_path_mp3 = f"{config['mix_path']}/{mix_filename_mp3}"
+                if os.path.isfile(mix_path_mp3):
+                    os.remove(mix_path_mp3)
+
+            await mix_db.delete_one({
+                "_id": ObjectId(target_id)})
+
+            return response_model(mixes[0], f"Mix with id {target_id} deleted")
+        else:
+            return error_response_model("Internal Server Error", 500, f"Multiple options for mix id{target_id}")
+    else:
+        return error_response_model("Not Found", 404, f"Mix with id {target_id} does not exist")
 
 
 @app.get("/scenarios")

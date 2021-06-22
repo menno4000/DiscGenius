@@ -73,21 +73,27 @@ def create_wav_from_audio(config, filename, extension):
     util.move_audio_to_storage(config, input_path)
 
 
-async def mix_two_files(config,
-                  song_a_name,
-                  song_b_name,
-                  bpm_a,
-                  bpm_b,
-                  desired_bpm,
-                  mix_name,
-                  scenario_name,
-                  transition_points,
-                  entry_point,
-                  exit_point,
-                  num_songs_a,
-                  mix_id,
-                  mix_db: Collection,
-                  fs: AsyncIOMotorGridFSBucket):
+async def mix_two_files(param):
+
+    config = param['config']
+    song_a_name = param['song_a_name']
+    song_b_name = param['song_b_name']
+    bpm_a = param['bpm_a']
+    bpm_b = param['bpm_b']
+    desired_bpm = param['desired_bpm']
+    mix_name = param['mix_name']
+    scenario_name = param['scenario_name']
+    transition_points = param['transition_points']
+    entry_point = param['entry_point']
+    exit_point = param['exit_point']
+    num_songs_a = param['num_songs_a']
+    num_songs_b = param['num_songs_b']
+    mix_id = param['mix_id']
+    mix_db = param['mix_db']
+    fs = param['fs']
+
+    # TODO implement correct second track handlign
+
     # check that mongodb mix file exists
     mix_mongo = await mix_db.find_one({"_id": ObjectId(mix_id)})
     if mix_mongo:
@@ -103,7 +109,7 @@ async def mix_two_files(config,
         with open(song_a_path, 'wb') as a_f:
             a_f.write(song_a_data)
         # song_a = util.read_wav_file(config, song_a_path, identifier='songA')
-        song_a = util.read_wav_file(config, io.BytesIO(song_a_data), identifier='songA')
+        song_a = util.read_wav_file(config, filepath=song_a_path, data=io.BytesIO(song_a_data), identifier='songA')
 
         cursor_b = fs.find({"filename": song_b_name})
         async for grid_data in cursor_b:
@@ -111,7 +117,7 @@ async def mix_two_files(config,
         with open(song_b_path, 'wb') as b_f:
             b_f.write(song_b_data)
         # song_b = util.read_wav_file(config, song_b_path, identifier='songB')
-        song_b = util.read_wav_file(config, io.BytesIO(song_a_data), identifier='songB')
+        song_b = util.read_wav_file(config, filepath=song_b_path, data=io.BytesIO(song_b_data), identifier='songB')
 
         # if num_songs_a > 1:
         #     song_a = util.read_wav_file(config, f"{config['mix_path']}/{song_a_name}", identifier='songA')

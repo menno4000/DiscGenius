@@ -149,8 +149,10 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
     pp.pprint(SCENARIO)
 
     if not song_a['frame_rate'] == sample_rate and not song_b['frame_rate'] == sample_rate:
-        print(f"ERROR - Skipping mixing because sample rate is not {sample_rate}Hz for both songs.")
-        sys.exit()
+        # print(f"ERROR - Skipping mixing because sample rate is not {sample_rate}Hz for both songs.")
+        # sys.exit()
+        song_a['frame_rate'] = sample_rate
+        song_b['frame_rate'] = sample_rate
 
     print("INFO - Mixing: Adding unmodified frames of song A to mix. Length: '%0.2f's" % transition_points['c'])
     # reading song a just until point C and get all frames for both channels

@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from bson import ObjectId, Binary
-import pickle
 
 
 class PyObjectId(ObjectId):

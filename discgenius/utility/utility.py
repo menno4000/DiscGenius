@@ -33,12 +33,17 @@ def get_bpm_from_filename_mix(name):
     return mix_bpm
 
 
-def read_wav_file(config, filepath, duration=None, identifier=None, debug_info=True):
+def read_wav_file(config, filepath="", duration=None, data=None, identifier=None, debug_info=True):
     # alternatives: soundfile, wav, sciPy, pydub
+    if data is None:
+        librosa_load = sf.read(filepath, dtype='float32')
+    else:
+        librosa_load = sf.read(data, dtype='float32')
+
     if debug_info:
         print("INFO - Reading song '%s'" % filepath)
 
-    librosa_load = sf.read(filepath, dtype='float32')
+
     # librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
     # librosa_load_mono = librosa.core.load(filepath, sr=config['sample_rate'], mono=True, duration=duration)
 
