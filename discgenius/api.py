@@ -10,6 +10,7 @@ from starlette.responses import FileResponse
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import JWTAuthentication
 from fastapi_users.db import MongoDBUserDatabase
+from fastapi.middleware.cors import CORSMiddleware
 from pymongo.collection import Collection
 from bson import ObjectId, Binary
 from uuid import UUID, uuid4
@@ -56,6 +57,19 @@ jwt_authentication = JWTAuthentication(
 
 # jobs: Dict[UUID, Job] = {}
 app = FastAPI()
+
+origins = [
+    "http://localhost:8080",
+    "http://menno4000.github.io/discgenius-app"
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # _db = AsyncIOMotorClient(
 #     DATABASE_URL,
 #     maxPoolSize=10,
