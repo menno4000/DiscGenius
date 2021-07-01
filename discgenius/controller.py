@@ -194,12 +194,15 @@ async def mix_two_files(param):
 
         mix_name_wav = mixed_song['name']
         file_path_wav = mixed_song['path']
+        length = util.get_mix_length(file_path_wav)
+
         with open(file_path_wav, 'rb') as f:
             grid_in = fs.open_upload_stream(mix_name_wav)
             await grid_in.write(f.read())
             await grid_in.close()
         update_data = {
             "title": mix_name_wav,
+            "length": length,
             "progress": 80
         }
         mix_update3 = await mix_db.update_one(

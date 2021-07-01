@@ -24,6 +24,7 @@ class SongSchema(BaseModel):
     title_mp3: str = Field(...)
     bpm: float = Field(..., le=2.0)
     user_id: str = Field(...)
+    length: float = Field(..., le=5.0)
 
     class Config:
         arbitrary_types_allowed = True
@@ -34,6 +35,7 @@ class SongSchema(BaseModel):
                 "title_mp3": "Suki.mp3",
                 "bpm": 124.0,
                 "user_id": "33c00ea1-f6c1-4842-a625-a7be4ed7cf95",
+                "length": 300.0
             }
         }
 
@@ -45,6 +47,8 @@ def song_helper(song) -> dict:
         "bpm": float(song['bpm']),
         "user_id": str(song['user_id'])
     }
+    if 'length' in song:
+        data['length'] = float(song['length'])
     if 'title_mp3' in song:
         data['title_mp3'] = str(song['title_mp3'])
 
@@ -62,6 +66,7 @@ class MixSchema(BaseModel):
     transition_length: int = Field(...)
     transition_midpoint: int = Field(...)
     progress: int = Field(...)
+    length: float = Field(..., le=5.0)
 
     class Config:
         arbitrary_types_allowed = True
@@ -77,7 +82,8 @@ class MixSchema(BaseModel):
                 "transition_length": 32,
                 "transition_midpoint": 16,
                 "user_id": "33c00ea1-f6c1-4842-a625-a7be4ed7cf95",
-                "progress": 0
+                "progress": 0,
+                "length": 300.0
             }
         }
 
@@ -91,7 +97,8 @@ def mix_helper(mix) -> dict:
         "transition_length": int(mix['transition_length']),
         "transition_midpoint": int(mix['transition_midpoint']),
         "user_id": str(mix['user_id']),
-        "progress": int(mix['progress'])
+        "progress": int(mix['progress']),
+        "length": float(mix['length'])
     }
     if 'title_mp3' in mix:
         mix_data['title_mp3'] = str(mix['title'])

@@ -52,7 +52,7 @@ def after_verification_request(user: UserDB, token: str, request: Request):
 
 
 jwt_authentication = JWTAuthentication(
-    secret=SECRET, lifetime_seconds=60000, tokenUrl="auth/jwt/login"
+    secret=SECRET, lifetime_seconds=86400, tokenUrl="auth/jwt/login"
 )
 
 # jobs: Dict[UUID, Job] = {}
@@ -240,6 +240,7 @@ async def upload_song(request: Request,
         bpm = bpm_detection.estimate_tempo(config, temp_filename, 3)
 
     bpm = validator.convert_bpm(config, bpm)
+    song_length = util.get_song_length(config, temp_filename)
 
     _filename = controller.generate_safe_song_name(config, filename, 'wav', bpm)
 
@@ -260,6 +261,7 @@ async def upload_song(request: Request,
     print("saving song object to song db")
     song_data = {
         "title": str(_filename),
+        "length": str(song_length),
         "bpm": float(bpm),
         "user_id": str(user_id),
     }
@@ -270,23 +272,18 @@ async def upload_song(request: Request,
     # remove bpm detection temp files
     if temp_mp3_path:
         os.remove(temp_mp3_path)
-        shutil.move(temp_wav_path, f"{config['song_path']}/{_filename}")
-    else:
-        save_song(config, _filename, body)
-
-    if not extension == "wav":
-        # controller.create_wav_from_audio(config, _filename, extension)
-        #
-        # filename = _filename[:-(len(extension))] + "wav"
-        return {
-            "filename": _filename,
-            "info": "'.wav file' was created. Please refer to this file when calling /createMix."
-        }
-    return {
+    #     # shutil.move(temp_wav_path, f"{config['song_path']}/{_filename}")
+    # else:
+    #     # save_song(config, _filename, body)
+    os.remove(temp_wav_path)
+    response = {
         "filename": _filename,
-        "info": "Please refer to this name, when calling '/createMix'"
+        "bpm": bpm,
+        "length": song_length,
+        "id": song_id
     }
 
+    return response
 
 # @app.post("/extendMix")
 # async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(default=""),

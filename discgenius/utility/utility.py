@@ -318,3 +318,13 @@ def read_mix_content_data(config, mix_name):
     with open(data_path, mode='r', encoding='utf8') as mix_file:
         mix_data = json.load(mix_file)
         return mix_data['num_songs'], mix_data['bpm']
+
+
+def get_song_length(config, filename):
+    file = sf.SoundFile(f"{config['song_analysis_path']}/{filename}")
+    return len(file) / file.samplerate
+
+
+def get_mix_length(filepath):
+    file = sf.SoundFile(filepath)
+    return len(file) / file.samplerate
