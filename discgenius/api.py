@@ -4,7 +4,7 @@ import shutil
 import time
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Body, Depends, Response, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Body, Form, BackgroundTasks
 from starlette.requests import Request
 from starlette.responses import FileResponse
 from fastapi_users import FastAPIUsers
@@ -204,7 +204,9 @@ async def upload_song(request: Request,
                       filename: str = "",
                       extension: str = "",
                       bpm: str = "",
+                      # file: bytes = Form(...)
                       ):
+    # print(len(file))
     body = await request.body()
 
     if filename == "" or extension == "":
@@ -221,6 +223,7 @@ async def upload_song(request: Request,
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
     print(f"receiving upload from user {user_id}")
+    # TODO get similar song names from grid fs for safe song creation
 
     # create temp file to run bpm detection on
     _temp_filename = controller.generate_safe_song_temp_name(config, filename, extension)
@@ -278,9 +281,9 @@ async def upload_song(request: Request,
     os.remove(temp_wav_path)
     response = {
         "filename": _filename,
-        "bpm": bpm,
-        "length": song_length,
-        "id": song_id
+        "bpm": str(bpm),
+        "length": str(song_length),
+        "id": str(song_id.inserted_id)
     }
 
     return response
