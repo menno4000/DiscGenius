@@ -16,22 +16,41 @@ from bson.objectid import ObjectId
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 
 
-def generate_safe_song_name(config, filename, extension, bpm):
+async def generate_safe_song_name(config, filename, extension, bpm, song_db):
+    temp_filename = filename
+    if '-' in temp_filename:
+        temp_filename = temp_filename.split('-')[0]
     filename = filename.replace("_", "-")
 
     # generate safe file ending
     filename = f"{filename}_{bpm}.{extension}"
 
     # check if file exists
-    filename_without_extension_and_bpm = filename.split('_')[0]
-    fwe = filename_without_extension_and_bpm
-    i = 1
-    # check if given audio file or audio file in wav already exist, generate new name until a safe one is found
-    while os.path.isfile(f"{config['song_path']}/{filename}") or os.path.isfile(f"{config['song_path']}/{fwe}.wav"):
-        filename = f"{filename_without_extension_and_bpm}-{i}_{bpm}.{extension}"
-        fwe = filename[:-(len(extension) + 1)]
-        i += 1
-    return filename
+    return await generate_safe_song_temp_name_from_db(temp_filename, filename, extension, song_db, bpm)
+
+
+async def generate_safe_song_temp_name_from_db(temp_filename, filename, extension, song_db, bpm):
+    present_songs = []
+    cursor = song_db.find({"title": {'$regex': f"^{temp_filename}"}})
+    async for song in cursor:
+        present_songs.append(song_helper(song))
+
+    if present_songs:
+        song_names = [s['title'].split('.')[0] for s in present_songs]
+        present_match_identifiers = []
+        for song_name in song_names:
+            if '-' in song_name:
+                song_title = song_name.split('-')[0]
+                if song_title == temp_filename:
+                    present_match_identifiers.append(int(song_name.split('-')[1].split('_')[0])+1)
+            else:
+                present_match_identifiers.append(0)
+        if 1 not in present_match_identifiers:
+            return filename
+        else:
+            return f"{temp_filename}-{max(present_match_identifiers)}_{bpm}.{extension}"
+    else:
+        return filename
 
 
 def generate_safe_song_temp_name(config, filename, extension):
@@ -41,6 +60,11 @@ def generate_safe_song_temp_name(config, filename, extension):
     # generate safe file ending
     filename = f"{filename}.{extension}"
 
+    # check if file exists
+    return generate_safe_song_temp_name_from_fs(config, temp_filename, filename, extension)
+
+
+def generate_safe_song_temp_name_from_fs(config, temp_filename, filename, extension):
     # check if file exists
     fwe = temp_filename
     i = 1
@@ -52,19 +76,26 @@ def generate_safe_song_temp_name(config, filename, extension):
     return filename
 
 
-def generate_safe_mix_name(config, orig_filename, bpm, scenario_name):
+def generate_safe_mix_name(config, orig_filename, bpm, scenario_name, transition_midpoint, transition_length):
     if orig_filename == "":
         orig_filename = f"mix_{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}"
 
-    i = 1
-    segment_length_a = config['transition_midpoint']
-    segment_length_b = config['transition_length'] - segment_length_a
+    segment_length_a = transition_midpoint
+    segment_length_b = transition_length
     new_filename = f"{orig_filename}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
+
+    i = 1
     while os.path.isfile(f"{config['mix_path']}/{new_filename}.wav") or os.path.isfile(f"{config['mix_path']}/{new_filename}.mp3"):
         new_filename = f"{orig_filename}-{i}_{bpm}_{scenario_name}_{segment_length_a}-{segment_length_b}"
         i += 1
     return new_filename
 
+#
+# def generate_safe_mix_name_from_fs(config, filename, orig_filename, bpm, scenario_name, transition_midpoint, transition_length):
+#
+#
+# def generate_safe_mix_name_from_db(config, filename, orig_filename, bpm, scenario_name, transition_midpoint, transition_length):
+#
 
 def create_wav_from_audio(config, filename, extension):
     input_path = f"{config['song_path']}/{filename}"

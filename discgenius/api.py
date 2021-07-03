@@ -245,7 +245,7 @@ async def upload_song(request: Request,
     bpm = validator.convert_bpm(config, bpm)
     song_length = util.get_song_length(config, temp_filename)
 
-    _filename = controller.generate_safe_song_name(config, filename, 'wav', bpm)
+    _filename = await controller.generate_safe_song_name(config, filename, 'wav', bpm, song_db)
 
     print("saving track to gridfs")
     with open(temp_wav_path, 'rb') as f:
