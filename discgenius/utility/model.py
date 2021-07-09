@@ -97,9 +97,10 @@ def mix_helper(mix) -> dict:
         "transition_length": int(mix['transition_length']),
         "transition_midpoint": int(mix['transition_midpoint']),
         "user_id": str(mix['user_id']),
-        "progress": int(mix['progress']),
-        "length": float(mix['length'])
+        "progress": int(mix['progress'])
     }
+    if 'length' in mix:
+        mix_data['length'] = str(mix['length'])
     if 'title_mp3' in mix:
         mix_data['title_mp3'] = str(mix['title'])
     if 'scenarios' in mix:

@@ -14,12 +14,12 @@ import numpy
 
 
 def get_length_of_song(config, song_name):
-    song = read_wav_file(config, f"{config['song_path']}/{song_name}", debug_info=False)
+    song = read_wav_file(config, filepath=f"{config['song_path']}/{song_name}", debug_info=False)
     return song['total_frames']/song['frame_rate']
 
 
 def get_length_of_mix(config, song_name):
-    song = read_wav_file(config, f"{config['mix_path']}/{song_name}", debug_info=False)
+    song = read_wav_file(config, filepath=f"{config['mix_path']}/{song_name}", debug_info=False)
     return song['total_frames']/song['frame_rate']
 
 
@@ -33,7 +33,8 @@ def get_bpm_from_filename_mix(name):
     return mix_bpm
 
 
-def read_wav_file(config, filepath="", duration=None, data=None, identifier=None, debug_info=True):
+# TODO this takes a long time, reduce number of times it's called
+def read_wav_file(config, num_songs=1, filepath="", duration=None, data=None, identifier=None, debug_info=True):
     # alternatives: soundfile, wav, sciPy, pydub
     if data is None:
         librosa_load = sf.read(filepath, dtype='float32')
@@ -57,12 +58,16 @@ def read_wav_file(config, filepath="", duration=None, data=None, identifier=None
             'right_channel': numpy.asfortranarray(librosa_load_stereo_r),
             'frame_rate': librosa_load[1],
             'path': filepath,
-            'name': filepath.split('/')[len(filepath.split('/')) - 1],
-            'num_songs': 1
+            'filename': filepath.split('/')[len(filepath.split('/')) - 1],
+            'num_songs': num_songs
             }
     song['total_frames'] = len(song['frames'][0])
-    song['bpm'] = get_bpm_from_filename(song['name'])
-    song['name'] = ''.join(song['name'].split('_')[:-1])
+    if num_songs == 1:
+        song['bpm'] = get_bpm_from_filename(song['filename'])
+    else:
+        song['bpm'] = get_bpm_from_filename_mix(song['filename'])
+
+    song['name'] = song['filename'].split('_')[0]
 
     if identifier:
         song['identifier'] = identifier
@@ -254,11 +259,13 @@ def read_api_detail(config):
     return ''.join(open(config['info_text_path'], 'r').readlines())
 
 
+# TODO save analysis data to DB and delete local files
 def save_song_analysis_data(config, song, transition_points, tsl_list):
     clip_size = config['clip_size']
     identifier = f"{tsl_list[0]}-{tsl_list[1]}_{clip_size}"
     data_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"
 
+    # TODO something is going on buggy here when working with mixes.
     with open(data_path, mode='r', encoding='utf-8') as fp:
         song_data = json.load(fp)
 

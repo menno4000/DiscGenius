@@ -123,7 +123,7 @@ async def mix_two_files(param):
     mix_db = param['mix_db']
     fs = param['fs']
 
-    # TODO implement correct second track handlign
+    # TODO implement correct second track handling
 
     # check that mongodb mix file exists
     mix_mongo = await mix_db.find_one({"_id": ObjectId(mix_id)})
@@ -140,7 +140,7 @@ async def mix_two_files(param):
         with open(song_a_path, 'wb') as a_f:
             a_f.write(song_a_data)
         # song_a = util.read_wav_file(config, song_a_path, identifier='songA')
-        song_a = util.read_wav_file(config, filepath=song_a_path, data=io.BytesIO(song_a_data), identifier='songA')
+        song_a = util.read_wav_file(config, num_songs_a, filepath=song_a_path, data=io.BytesIO(song_a_data), identifier='songA')
 
         cursor_b = fs.find({"filename": song_b_name})
         async for grid_data in cursor_b:
@@ -148,7 +148,7 @@ async def mix_two_files(param):
         with open(song_b_path, 'wb') as b_f:
             b_f.write(song_b_data)
         # song_b = util.read_wav_file(config, song_b_path, identifier='songB')
-        song_b = util.read_wav_file(config, filepath=song_b_path, data=io.BytesIO(song_b_data), identifier='songB')
+        song_b = util.read_wav_file(config, num_songs_b, filepath=song_b_path, data=io.BytesIO(song_b_data), identifier='songB')
 
         # if num_songs_a > 1:
         #     song_a = util.read_wav_file(config, f"{config['mix_path']}/{song_a_name}", identifier='songA')
@@ -172,11 +172,20 @@ async def mix_two_files(param):
         tsl_list = [config['transition_midpoint'], config['transition_length'] - config['transition_midpoint']]
 
         # 1 match tempo of both songs before analysis
-        # TODO write adjusted songs to db
+        # TODO (maybe) write adjusted songs to db
         if desired_bpm != bpm_a:
-            song_a_adjusted, song_b_adjusted = bpm_match.match_bpm_desired(config, song_a, song_b, desired_bpm, bpm_a, bpm_b)
+            song_a_adjusted, song_b_adjusted = bpm_match.match_bpm_desired(config,
+                                                                           song_a,
+                                                                           song_b,
+                                                                           desired_bpm,
+                                                                           bpm_a,
+                                                                           bpm_b)
         else:
-            song_a_adjusted, song_b_adjusted = bpm_match.match_bpm_first(config, song_a, bpm_a, song_b, bpm_b)
+            song_a_adjusted, song_b_adjusted = bpm_match.match_bpm_first(config,
+                                                                         song_a,
+                                                                         bpm_a,
+                                                                         song_b,
+                                                                         bpm_b)
 
         update_data = {
             "progress": 40
@@ -244,6 +253,7 @@ async def mix_two_files(param):
             print("mix update #3 failed")
 
         # 4. convert to mp3
+        # TODO figure out why wav filename is saved to mp3 title field and fix it
         if mixed_song:
             mix_name_mp3 = converter.convert_result_to_mp3(config, mixed_song['name'])
             if mix_name_mp3:
@@ -273,9 +283,11 @@ async def mix_two_files(param):
         new_num_songs = num_songs_a + 1
         json_data = util.export_transition_parameters_to_json(config, [song_a, song_b, mixed_song], transition_points,
                                                               scenario_data, tsl_list, new_num_songs, desired_bpm)
-
+        # TODO remove tempo changed songs
+        # TODO remove local mix files
         os.remove(song_a_path)
         os.remove(song_b_path)
+
         return json_data
     else:
         return error_response_model("Not Found", 404, f"Mix with id {mix_id} does not exist")

@@ -54,7 +54,7 @@ def aubio_beat_tracking(filepath, sample_rate, win_s=512):
 
 
 def aubio_beat_track_with_lpf_before(config, filepath, sample_rate, win_s=512, freq=250):
-    song = read_wav_file(config, filepath, debug_info=False)
+    song = read_wav_file(config, filepath=filepath, debug_info=False)
 
     # modify signal with low pass filter
     left_channel = high_cut_filter(song['left_channel'], order=3, freq=freq)
@@ -115,7 +115,7 @@ def librosa_beat_tracking(config, signal, song, entry_point):
 
 
 def librosa_beat_tracking_with_mono_signal(config, song, entry_point):
-    song = read_wav_file(config, song['path'], debug_info=False)
+    song = read_wav_file(config, filepath=song['path'], debug_info=False)
     return librosa_beat_tracking(config, song['mono'], song, entry_point)
 
 

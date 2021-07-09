@@ -236,6 +236,7 @@ async def upload_song(request: Request,
         temp_wav_path = f"{config['song_analysis_path']}/{temp_filename}"
         convert_audio_to_wav(config, temp_mp3_path, temp_wav_path)
     else:
+        # TODO create mp3 song file for playback
         temp_filename = _temp_filename
         temp_wav_path = f"{config['song_analysis_path']}/{temp_filename}"
 
@@ -340,7 +341,7 @@ async def upload_song(request: Request,
 #     return controller.mix_two_files(config, mix_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name,
 #                                     transition_points, entry_point, exit_point, num_songs_a)
 
-
+# TODO true async
 @app.post("/createMix", status_code=HTTPStatus.ACCEPTED)
 async def mix(request: Request,
               background_tasks: BackgroundTasks,
@@ -363,23 +364,18 @@ async def mix(request: Request,
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"receiving mix request from user {user_id}")
+    print(f"receiving create mix request from user {user_id}")
 
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(status_code=422, detail=util.read_api_detail(config))
 
-    _song_a = await song_db.find_one({"title": str(song_a_name)})
-    # _song_a = song_helper(_song_a)
-    if not _song_a:
-        raise_exception(404, "track A could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
-
-    _song_b = await song_db.find_one({"title": str(song_b_name)})
-    # _song_b = song_helper(_song_b)
-    if not _song_b:
-        raise_exception(404, "track B could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
-
     if num_songs_a > 1:
         exit_point = exit_point / num_songs_a
+        _song_a = await mix_db.find_one({"title": str(song_a_name)})
+    else:
+        _song_a = await song_db.find_one({"title": str(song_a_name)})
+    if not _song_a:
+        raise_exception(404, "track A could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
     #     if not os.path.isfile(f"{config['mix_path']}/{song_a_name}"):
     #         raise_exception(404, "mix A could not be found. Please check using GET '/mixes' which songs exist.")
     # else:
@@ -387,6 +383,11 @@ async def mix(request: Request,
     #         raise_exception(404, "song A could not be found. Please check using GET '/songs' which songs exist.")
     if num_songs_b > 1:
         entry_point = entry_point / num_songs_b
+        _song_b = await mix_db.find_one({"title": str(song_b_name)})
+    else:
+        _song_b = await song_db.find_one({"title": str(song_b_name)})
+    if not _song_b:
+        raise_exception(404, "track B could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
     #     if not os.path.isfile(f"{config['mix_path']}/{song_b_name}"):
     #         raise_exception(404, "mix B could not be found. Please check using GET '/mixes' which songs exist.")
     # else:
@@ -398,8 +399,6 @@ async def mix(request: Request,
     #     raise_exception(404, "One of the two given songs could not be found. "
     #                          "Please check using GET '/songs' which songs exist.")
 
-    num_songs_a = 1
-
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
 
@@ -408,7 +407,12 @@ async def mix(request: Request,
     if exit_point < 0.0 or exit_point > 1.0 or entry_point < 0.0 or entry_point > 1.0:
         raise_exception(422, "exit_point or entry_point must be floating point numbers between 0 and 1.")
 
-    bpm_a, bpm_b, desired_bpm = validator.validate_bpms_create(config, song_a_name, song_b_name, bpm)
+    bpm_a, bpm_b, desired_bpm = validator.validate_bpms_create(config,
+                                                               song_a_name,
+                                                               num_songs_a,
+                                                               song_b_name,
+                                                               num_songs_b,
+                                                               bpm)
 
     transition_length, transition_midpoint, transition_points = validator.validate_transition_times(config,
                                                                                                     transition_length,
@@ -417,10 +421,11 @@ async def mix(request: Request,
                                                                                                     desired_bpm,
                                                                                                     song_a_name,
                                                                                                     song_b_name)
+    # TODO investigate workaround for permanent config change
     config['transition_length'] = transition_length
     config['transition_midpoint'] = transition_midpoint
 
-    mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
+    mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name, transition_length, transition_midpoint)
 
     print("saving initial mix object")
     mix_id = await mix_db.insert_one({

@@ -61,8 +61,7 @@ def validate_transition_times(config, transition_length, transition_midpoint, tr
     return transition_length_beats, transition_midpoint_beats, transition_points
 
 
-def validate_bpms(config, song_b_name, desired_bpm, bpm_a):
-    bpm_b = convert_bpm(config, util.get_bpm_from_filename(song_b_name))
+def validate_bpms(config, bpm_b, desired_bpm, bpm_a):
     desired_bpm = convert_bpm(config, desired_bpm)
     if desired_bpm == 0.0:
         desired_bpm = bpm_a
@@ -75,9 +74,17 @@ def validate_bpms(config, song_b_name, desired_bpm, bpm_a):
     return bpm_a, bpm_b, desired_bpm
 
 
-def validate_bpms_create(config, song_a_name, song_b_name, desired_bpm):
-    bpm_a = convert_bpm(config, util.get_bpm_from_filename(song_a_name))
-    return validate_bpms(config, song_b_name, desired_bpm, bpm_a)
+def validate_bpms_create(config, song_a_name, num_songs_a, song_b_name, num_songs_b, desired_bpm):
+    if num_songs_a == 1:
+        bpm_a = convert_bpm(config, util.get_bpm_from_filename(song_a_name))
+    else:
+        bpm_a = convert_bpm(config, util.get_bpm_from_filename_mix(song_a_name))
+    if num_songs_b == 1:
+        bpm_b = convert_bpm(config, util.get_bpm_from_filename(song_b_name))
+    else:
+        bpm_b = convert_bpm(config, util.get_bpm_from_filename_mix(song_b_name))
+
+    return validate_bpms(config, bpm_b, desired_bpm, bpm_a)
 
 
 def validate_bpms_extend(config, song_b_name, prev_bpm, desired_bpm):
