@@ -1,32 +1,29 @@
 import os
-import jwt
-import shutil
 import time
+from http import HTTPStatus
 
+import jwt
 import uvicorn
-from fastapi import FastAPI, HTTPException, Body, Form, BackgroundTasks
-from starlette.requests import Request
-from starlette.responses import FileResponse
+from bson import ObjectId
+from fastapi import FastAPI, HTTPException, Body, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import JWTAuthentication
 from fastapi_users.db import MongoDBUserDatabase
-from fastapi.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket, AsyncIOMotorClient
 from pymongo.collection import Collection
-from bson import ObjectId, Binary
-from uuid import UUID, uuid4
-from typing import Dict
-from pydantic import BaseModel, Field
-from motor.motor_asyncio import AsyncIOMotorGridFSBucket, AsyncIOMotorClient, AsyncIOMotorDatabase
-from http import HTTPStatus
+from starlette.requests import Request
+from starlette.responses import FileResponse
 
 from . import controller
 from .utility import bpm_detection
 from .utility import common, bpm_match, validator
 from .utility import utility as util
-from .utility.fastapi.user_model import UserDB, UserCreate, UserUpdate, User
-from .utility.db import db
-from .utility.model import song_helper, mix_helper, response_model, error_response_model
 from .utility.audio_file_converter import convert_audio_to_wav
+from .utility.db import db
+from .utility.fastapi.user_model import UserDB, UserCreate, UserUpdate, User
+from .utility.model import song_helper, mix_helper, response_model, error_response_model
+from .utility.mongodb import ConnectionManager
 
 config = common.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
@@ -36,6 +33,7 @@ DATABASE_NAME = config['db_name']
 USER_DB = config['user_col']
 SONGS_DB = config['tracks_col']
 MIX_DB = config['mixes_col']
+manager = ConnectionManager()
 
 
 def on_after_register(user: UserDB, request: Request):
@@ -70,21 +68,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# _db = AsyncIOMotorClient(
-#     DATABASE_URL,
-#     maxPoolSize=10,
-#     minPoolSize=10)
-# _disc_db = _db[DATABASE_NAME]
-# _user_col = _disc_db[USER_DB]
-# _user_db = MongoDBUserDatabase(UserDB, _user_col)
-# fastapi_users = FastAPIUsers(
-#     _user_db,
-#     [jwt_authentication],
-#     User,
-#     UserCreate,
-#     UserUpdate,
-#     UserDB
-# )
 user_db: MongoDBUserDatabase = None
 track_client: AsyncIOMotorClient = None
 song_db: Collection = None
@@ -113,6 +96,8 @@ async def download_file(file_id):
     with open(file_id, 'wb') as f:
         f.write(song_data)
     return file_id
+
+
 
 
 async def clean_up_file(file_id):
@@ -342,6 +327,8 @@ async def upload_song(request: Request,
 #                                     transition_points, entry_point, exit_point, num_songs_a)
 
 # TODO true async
+
+
 @app.post("/createMix", status_code=HTTPStatus.ACCEPTED)
 async def mix(request: Request,
               background_tasks: BackgroundTasks,
@@ -533,7 +520,6 @@ async def get_mix(background_tasks: BackgroundTasks, name: str = ""):
 async def get_song(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
         raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
-
     file = await download_file(name)
     if file:
         file_suffix = name.split('.')[-1]
@@ -546,6 +532,41 @@ async def get_song(background_tasks: BackgroundTasks, name: str = ""):
         response = FileResponse(file, media_type=content_type)
         background_tasks.add_task(clean_up_file, file)
         return response
+    else:
+        return error_response_model("Not Found", "404", "Song not found")
+
+
+@app.websocket("/getSong/ws")
+async def websocket_endpoint(background_tasks: BackgroundTasks, websocket: WebSocket, request: Request, name: str=""):
+    # get auth data
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"receiving playback request from user {user_id}")
+    if name == "":
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+
+    file = await download_file(name)
+    if file:
+        file_suffix = name.split('.')[-1]
+        if file_suffix == 'mp3':
+            content_type = 'audio/mpeg'
+        elif file_suffix == 'wav':
+            content_type = 'audio/wav'
+        else:
+            raise HTTPException(status_code=422, detail="File ending not supported.")
+
+        await manager.connect(websocket)
+        try:
+            while True:
+                incoming_data = await websocket.receive_text()
+                await manager.send_personal_message(f"Download Request received", websocket)
+                await manager.broadcast("a")
+        except WebSocketDisconnect:
+            manager.disconnect(websocket)
+            await manager.broadcast(f"Playback connection stopped for user {id}: {name}")
+            background_tasks.add_task(clean_up_file, file)
     else:
         return error_response_model("Not Found", "404", "Song not found")
 
@@ -622,6 +643,7 @@ async def get_mixes(request: Request):
     # return [f for f in os.listdir(config['mix_path']) if isfile(join(config['mix_path'], f)) and '.mp3' in f]
 
 
+# noinspection PyUnresolvedReferences
 @app.delete("/mixes")
 async def delete_mixes(request: Request, target_id: str = ""):
     auth_header = request.headers['Authorization']
