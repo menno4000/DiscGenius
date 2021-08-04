@@ -1,6 +1,7 @@
 import os
-import time
 from http import HTTPStatus
+import asyncio
+import logging
 
 import jwt
 import uvicorn
@@ -13,21 +14,41 @@ from fastapi_users.db import MongoDBUserDatabase
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket, AsyncIOMotorClient
 from pymongo.collection import Collection
 from starlette.requests import Request
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, StreamingResponse
 
 from . import controller
 from .utility import bpm_detection
 from .utility import common, bpm_match, validator
 from .utility import utility as util
-from .utility.audio_file_converter import convert_audio_to_wav
+from .utility.audio_file_converter import convert_audio_to_wav, convert_wav_to_mp3
 from .utility.db import db
 from .utility.fastapi.user_model import UserDB, UserCreate, UserUpdate, User
 from .utility.model import song_helper, mix_helper, response_model, error_response_model
 from .utility.mongodb import ConnectionManager
 
+logger = logging.getLogger()
+logger.name = "cme"
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(name)s [%(levelname).1s]: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S')
+
 config = common.get_config('./content.ini')
 SCENARIOS = util.get_scenarios(config, just_names=True)
-DATABASE_URL = "mongodb://127.0.0.1:27017"
+USERNAME = os.getenv("DG_DB_USERNAME")
+PASSWORD = os.getenv("DG_DB_PASSWORD")
+address = os.getenv("DG_DB_ADDRESS")
+logger.info(f"mongodb username: {USERNAME}")
+# if USERNAME and PASSWORD:
+#     # DATABASE_URL = f"mongodb://{username}:{password}@{address}"
+#     DATABASE_URL = f"mongodb://{USERNAME}:{PASSWORD}@{address}/?authSource=admin"
+# else:
+if not address:
+    address = config['mongo_url']
+DATABASE_URL = f"mongodb://{address}"
+
+# TODO delete!!!
+print(f"mongodb url: {DATABASE_URL}")
 SECRET = config['secret']
 DATABASE_NAME = config['db_name']
 USER_DB = config['user_col']
@@ -76,19 +97,23 @@ fastapi_users = None
 fs: AsyncIOMotorGridFSBucket = None
 
 
-# async def chunk_generator(grid_out):
-#     while True:
-#         # chunk = await grid_out.read(1024)
-#         chunk = await grid_out.readchunk()
-#         if not chunk:
-#             break
-#         yield chunk
+async def chunk_generator(grid_out):
+    while True:
+        # chunk = await grid_out.read(1024)
+        chunk = await grid_out.readchunk()
+        if not chunk:
+            break
+        yield chunk
+
+
+async def download_file_stream(file_id):
+    """Returns iterator over AsyncIOMotorGridOut object"""
+    global fs
+    grid_out = await fs.open_download_stream(file_id)
+    return chunk_generator(grid_out)
 
 
 async def download_file(file_id):
-    """Returns iterator over AsyncIOMotorGridOut object"""
-    # grid_out = await fs.open_download_stream({'filename': file_id})
-    # return chunk_generator(grid_out)
     cursor = fs.find({"filename": file_id})
     song_data = b""
     async for grid_data in cursor:
@@ -98,19 +123,16 @@ async def download_file(file_id):
     return file_id
 
 
-
-
 async def clean_up_file(file_id):
-    time.sleep(200)
+    await asyncio.sleep(60000)
     os.remove(file_id)
 
 
 @app.on_event("startup")
 async def startup():
-    await db.connect_to_database(path=DATABASE_URL)
+    await db.connect_to_database(path=DATABASE_URL, username=USERNAME, password=PASSWORD)
     global track_client
     track_client = db.client
-    global disc_db
     disc_db = db.client[DATABASE_NAME]
     global fs
     fs = AsyncIOMotorGridFSBucket(disc_db)
@@ -223,7 +245,10 @@ async def upload_song(request: Request,
     else:
         # TODO create mp3 song file for playback
         temp_filename = _temp_filename
+        _temp_filename = f'{str(_temp_filename)[:-4]}.mp3'
+        temp_mp3_path = f"{config['song_analysis_path']}/{_temp_filename}"
         temp_wav_path = f"{config['song_analysis_path']}/{temp_filename}"
+        convert_wav_to_mp3(config, temp_wav_path, temp_mp3_path)
 
     if bpm == "":
         bpm = bpm_detection.estimate_tempo(config, temp_filename, 3)
@@ -273,6 +298,7 @@ async def upload_song(request: Request,
     }
 
     return response
+
 
 # @app.post("/extendMix")
 # async def extendMix(mix_a_name: str = Body(default=""), song_b_name: str = Body(default=""),
@@ -345,7 +371,6 @@ async def mix(request: Request,
               exit_point: float = config['mix_area'],
               entry_point: float = config['mix_area'],
               ):
-
     # get auth data
     auth_header = request.headers['Authorization']
     auth_token = auth_header.split(' ')[-1]
@@ -362,7 +387,8 @@ async def mix(request: Request,
     else:
         _song_a = await song_db.find_one({"title": str(song_a_name)})
     if not _song_a:
-        raise_exception(404, "track A could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
+        raise_exception(404,
+                        "track A could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
     #     if not os.path.isfile(f"{config['mix_path']}/{song_a_name}"):
     #         raise_exception(404, "mix A could not be found. Please check using GET '/mixes' which songs exist.")
     # else:
@@ -374,7 +400,8 @@ async def mix(request: Request,
     else:
         _song_b = await song_db.find_one({"title": str(song_b_name)})
     if not _song_b:
-        raise_exception(404, "track B could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
+        raise_exception(404,
+                        "track B could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
     #     if not os.path.isfile(f"{config['mix_path']}/{song_b_name}"):
     #         raise_exception(404, "mix B could not be found. Please check using GET '/mixes' which songs exist.")
     # else:
@@ -412,19 +439,19 @@ async def mix(request: Request,
     config['transition_length'] = transition_length
     config['transition_midpoint'] = transition_midpoint
 
-    mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name, transition_length, transition_midpoint)
+    mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name, transition_length,
+                                                 transition_midpoint)
 
     print("saving initial mix object")
     mix_id = await mix_db.insert_one({
         "title": str(mix_name),
         "bpm": float(desired_bpm),
-        "num_songs": int((num_songs_a+num_songs_b)),
+        "num_songs": int((num_songs_a + num_songs_b)),
         "transition_length": int(transition_length),
         "transition_midpoint": int(transition_midpoint),
         "user_id": str(user_id),
         "progress": int(10)
     })
-
 
     print(f"INFO - A new mix will get created from songs '{song_a_name}' & '{song_b_name}'.")
     print(
@@ -516,6 +543,29 @@ async def get_mix(background_tasks: BackgroundTasks, name: str = ""):
         return error_response_model("Not Found", "404", "Mix not found")
 
 
+@app.get("/getMixMedia")
+async def get_mix_media(background_tasks: BackgroundTasks, name: str = ""):
+    if name == "":
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+    file = await download_file(name)
+    if file:
+        file_suffix = name.split('.')[-1]
+        if file_suffix == 'mp3':
+            content_type = 'audio/mpeg'
+        elif file_suffix == 'wav':
+            content_type = 'audio/wav'
+        else:
+            raise HTTPException(status_code=422, detail="File ending not supported.")
+        grid_out = await fs.open_download_stream_by_name(name)
+        response = StreamingResponse(chunk_generator(grid_out), media_type=content_type, headers={
+            'Accept-Ranges': 'bytes'
+        })
+        background_tasks.add_task(clean_up_file, file)
+        return response
+    else:
+        return error_response_model("Not Found", "404", "Mix not found")
+
+
 @app.get("/getSong")
 async def get_song(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
@@ -536,17 +586,10 @@ async def get_song(background_tasks: BackgroundTasks, name: str = ""):
         return error_response_model("Not Found", "404", "Song not found")
 
 
-@app.websocket("/getSong/ws")
-async def websocket_endpoint(background_tasks: BackgroundTasks, websocket: WebSocket, request: Request, name: str=""):
-    # get auth data
-    auth_header = request.headers['Authorization']
-    auth_token = auth_header.split(' ')[-1]
-    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
-    user_id = auth_token_data['user_id']
-    print(f"receiving playback request from user {user_id}")
+@app.get("/getSongMedia")
+async def get_song(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
-        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
-
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name'.")
     file = await download_file(name)
     if file:
         file_suffix = name.split('.')[-1]
@@ -556,13 +599,46 @@ async def websocket_endpoint(background_tasks: BackgroundTasks, websocket: WebSo
             content_type = 'audio/wav'
         else:
             raise HTTPException(status_code=422, detail="File ending not supported.")
+        grid_out = await fs.open_download_stream_by_name(name)
+        response = StreamingResponse(chunk_generator(grid_out), media_type=content_type, headers={
+            'Accept-Ranges': 'bytes'
+        })
+        background_tasks.add_task(clean_up_file, file)
+        return response
+    else:
+        return error_response_model("Not Found", "404", "Song not found")
+
+
+@app.websocket("/getSong/ws")
+async def websocket_endpoint(background_tasks: BackgroundTasks, websocket: WebSocket, request: Request, name: str = ""):
+    # get auth data
+    auth_header = request.headers['Authorization']
+    auth_token = auth_header.split(' ')[-1]
+    auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
+    user_id = auth_token_data['user_id']
+    print(f"receiving playback request from user {user_id}")
+    if name == "":
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+
+    file = await song_db.find({'title_mp3': name})
+    if file:
+        file_suffix = name.split('.')[-1]
+        if file_suffix == 'mp3':
+            content_type = 'audio/mpeg'
+        elif file_suffix == 'wav':
+            content_type = 'audio/wav'
+        else:
+            raise HTTPException(status_code=422, detail="File ending not supported.")
+
+        grid_out = await fs.open_download_stream_by_name(name)
+        chunks = chunk_generator(grid_out).read()
 
         await manager.connect(websocket)
         try:
             while True:
                 incoming_data = await websocket.receive_text()
                 await manager.send_personal_message(f"Download Request received", websocket)
-                await manager.broadcast("a")
+                await manager.broadcast('b')
         except WebSocketDisconnect:
             manager.disconnect(websocket)
             await manager.broadcast(f"Playback connection stopped for user {id}: {name}")
@@ -694,4 +770,3 @@ async def get_scenarios():
 
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=9001, log_level='debug')
-

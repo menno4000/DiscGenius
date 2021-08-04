@@ -2,10 +2,12 @@ librosa~=0.8.0
 numpy~=1.20.1
 scipy~=1.6.0
 matplotlib~=3.3.4
-ffmpeg
+ffmpeg~=1.4
 fastapi[all]~=0.65.2
+fastapi_users~=6.1.0
 uvicorn~=0.13.4
 aubio~=0.4.9
-pywavelets
+pywavelets~=1.1.1
 Starlette~=0.14.2
 motor~=2.4.0
+pyjwt~=2.1.0

@@ -75,3 +75,4 @@ pnpm-debug.log*
 *.sw?
 /discgenius-vuejs/
 /debug/
+/.env.prod

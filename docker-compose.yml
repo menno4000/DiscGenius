@@ -1,0 +1,41 @@
+services:
+  mongodb:
+    image: mongo:latest
+    networks:
+      - internal
+    ports:
+      - "127.0.0.1:27017:27017"
+    container_name: discgenius_mongodb
+    volumes:
+      - db-volume:/data/db
+      - configdb-volume:/data/configdb
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    environment:
+      - "MONGO_INITDB_ROOT_USERNAME"
+      - "MONGO_INITDB_ROOT_PASSWORD"
+      - "MONGO_INITDB_DATABASE"
+      - "DG_DB_USERNAME"
+      - "DG_DB_PASSWORD"
+      - "DG_DB_NAME"
+  discgenius:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - internal
+    container_name: "discgenius-api"
+    environment:
+      - "DG_DB_USERNAME"
+      - "DG_DB_PASSWORD"
+      - "DG_DB_ADDRESS"
+      - "DG_SONG_DB_NAME"
+      - "DG_MIX_DB_NAME"
+    depends_on:
+      - mongodb
+    ports:
+      - "9001:9001"
+volumes:
+  db-volume: {}
+  configdb-volume: {}
+networks:
+  internal: { }

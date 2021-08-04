@@ -16,6 +16,13 @@ Die im Ordner befindliche Datei ```DiscGenius.postman_collection.json``` kann in
 
 ## Setup
 
+### Build with Docker
+
+1. create env file `.env.prod` as per example with new passwords for admin and root
+2. start the server using `docker-compose -f ./docker-compose.yml --env-file ./.env.prod up --build --detach`
+
+### Build manually
+
 You will need python3 and pip. After that you can start the application with running the script ```./run_api.sh```.
 For audio file conversion you will need 'ffmpeg' (which is already included in the repo, ```https://ffmpeg.org/```) and 'LAME' which can be downloaded here ```http://lame.sourceforge.net/```.
 

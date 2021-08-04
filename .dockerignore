@@ -1,0 +1,8 @@
+# ignore everything
+# **
+
+# only add needed things for the installation
+!/discgenius/**
+!/scenarios/*
+!/content.ini
+!/requirements.txt
