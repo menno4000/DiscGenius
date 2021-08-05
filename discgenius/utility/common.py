@@ -84,7 +84,7 @@ def get_config(content_path):
         'user_col': get_string_parameter(parser, section, 'user_col'),
         'tracks_col': get_string_parameter(parser, section, 'tracks_col'),
         'mixes_col': get_string_parameter(parser, section, 'mixes_col'),
-
+        'mongo_url': get_string_parameter(parser, section, 'mongo_url'),
         'data_path': get_string_parameter(parser, "PATHS", 'data_path'),
         'song_path': get_string_parameter(parser, "PATHS", 'song_path'),
         'song_analysis_path': get_string_parameter(parser, "PATHS", 'song_analysis_path'),

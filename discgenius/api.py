@@ -39,16 +39,11 @@ USERNAME = os.getenv("DG_DB_USERNAME")
 PASSWORD = os.getenv("DG_DB_PASSWORD")
 address = os.getenv("DG_DB_ADDRESS")
 logger.info(f"mongodb username: {USERNAME}")
-# if USERNAME and PASSWORD:
-#     # DATABASE_URL = f"mongodb://{username}:{password}@{address}"
-#     DATABASE_URL = f"mongodb://{USERNAME}:{PASSWORD}@{address}/?authSource=admin"
-# else:
+
 if not address:
     address = config['mongo_url']
 DATABASE_URL = f"mongodb://{address}"
 
-# TODO delete!!!
-print(f"mongodb url: {DATABASE_URL}")
 SECRET = config['secret']
 DATABASE_NAME = config['db_name']
 USER_DB = config['user_col']
