@@ -11,6 +11,9 @@ import soundfile as sf
 
 import librosa
 import numpy
+import logging
+
+logger = logging.getLogger("utility.utility")
 
 
 def get_length_of_song(config, song_name):
@@ -42,7 +45,7 @@ def read_wav_file(config, num_songs=1, filepath="", duration=None, data=None, id
         librosa_load = sf.read(data, dtype='float32')
 
     if debug_info:
-        print("INFO - Reading song '%s'" % filepath)
+        logger.info("INFO - Reading song '%s'" % filepath)
 
 
     # librosa_load = librosa.core.load(filepath, sr=config['sample_rate'], mono=False, duration=duration)
@@ -74,7 +77,7 @@ def read_wav_file(config, num_songs=1, filepath="", duration=None, data=None, id
     song['length'] = get_length_out_of_frames(config, song['total_frames'])
 
     if debug_info:
-        print("       Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
+        logger.info("       Parameters: Framerate '%s', Total Frames '%s', Length '%sm'\n" % (
         song['frame_rate'], song['total_frames'], song['length']))
 
     return song
@@ -86,7 +89,7 @@ def save_wav_file(config, list_of_frames, path, debug_info=True):
     #     path = f"{path[:-4]}-{i}.wav"
     #     i += 1
     if debug_info:
-        print("INFO - Saving mixed audio file to '%s'" % path)
+        logger.info("INFO - Saving mixed audio file to '%s'" % path)
     # librosa.output.write_wav(path, list_of_frames, config['sample_rate'], norm=True)
     #
     sf.write(path, list_of_frames, config['sample_rate'])
@@ -96,12 +99,12 @@ def save_wav_file(config, list_of_frames, path, debug_info=True):
 
 
 def move_audio_to_storage(config, filepath):
-    print(
+    logger.info(
         "------------------------------------------------------------------------------------------------------------------------")
-    print(filepath)
-    print(config['mp3_storage'])
+    logger.info(filepath)
+    logger.info(config['mp3_storage'])
     audio_file = filepath.split('/')[-1]
-    print(audio_file)
+    logger.info(audio_file)
     os.rename(filepath, f"{config['mp3_storage']}/{audio_file}")
 
 
@@ -124,26 +127,26 @@ def log_info_about_mix(song_a, song_b, transition_points, frames):
     rest_frames_song_a = song_a['total_frames'] - frames['until_e']
     rest_frames_song_b = song_b['total_frames'] - frames['until_x']
 
-    print(
+    logger.info(
         "------------------------------------------------------------------------------------------------------------------------")
-    print("INFO - Mix setup:")
-    print("Song A:      ..........................c.............d. . . . . . e________")
-    print("Song B:                ________________a. . . . . . .b............x..............")
-    print("In seconds:")
-    print("Song A:    ..........................%0.2f........%0.2f. . . . .%0.2f________________" % (
+    logger.info("INFO - Mix setup:")
+    logger.info("Song A:      ..........................c.............d. . . . . . e________")
+    logger.info("Song B:                ________________a. . . . . . .b............x..............")
+    logger.info("In seconds:")
+    logger.info("Song A:    ..........................%0.2f........%0.2f. . . . .%0.2f________________" % (
         transition_points['c'], transition_points['d'], transition_points['e']))
-    print("Song B:                ______________%0.2f. . . . . .%0.2f.........%0.2f..........." % (
+    logger.info("Song B:                ______________%0.2f. . . . . .%0.2f.........%0.2f..........." % (
         transition_points['a'], transition_points['b'], transition_points['x']))
-    print("In frames:")
-    print("Song A:       .....%s.....%s.....%s.....%s....." % (
+    logger.info("In frames:")
+    logger.info("Song A:       .....%s.....%s.....%s.....%s....." % (
         frames['until_c'], frames['between_c_and_d'], frames['between_d_and_e'], rest_frames_song_a))
-    print("Song B:         .....%s.....%s.....%s.....%s....." % (
+    logger.info("Song B:         .....%s.....%s.....%s.....%s....." % (
         frames['until_a'], frames['between_c_and_d'], frames['between_d_and_e'], rest_frames_song_b))
-    print("Total:     ............................%s......................................" % (
+    logger.info("Total:     ............................%s......................................" % (
             frames['until_c'] + frames['between_c_and_d'] + frames['between_d_and_e'] + rest_frames_song_b))
-    print(
+    logger.info(
         "------------------------------------------------------------------------------------------------------------------------")
-    print()
+    logger.info("\n")
 
 
 def calculate_frames(config, song_a, song_b, transition_points):
@@ -185,7 +188,7 @@ def get_scenarios(config, just_names=True):
 
 
 def export_transition_parameters_to_json(config, list_of_songs, transition_points, scenario_data, tsl_list, num_songs, bpm):
-    print("INFO - Generating json-file that stores transition process.")
+    logger.info("INFO - Generating json-file that stores transition process.")
     mix_name = ""
     json_data = {}
     for song in list_of_songs:
@@ -308,13 +311,13 @@ def read_song_analysis_data(config, song, tsl_list, bias_mode):
             transition_points['a'] = current_settings['a']
             transition_points['b'] = current_settings['b']
             transition_points['x'] = current_settings['x']
-            print(f"INFO - Analysis: Successfully read transition_points for '{song['name']}': {transition_points}")
+            logger.info(f"INFO - Analysis: Successfully read transition_points for '{song['name']}': {transition_points}")
             return transition_points
         elif not bias_mode and 'c' in current_settings:
             transition_points['c'] = current_settings['c']
             transition_points['d'] = current_settings['d']
             transition_points['e'] = current_settings['e']
-            print(f"INFO - Analysis: Successfully read transition_points for '{song['name']}': {transition_points}")
+            logger.info(f"INFO - Analysis: Successfully read transition_points for '{song['name']}': {transition_points}")
             return transition_points
     return None
 

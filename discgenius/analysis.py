@@ -1,7 +1,9 @@
 from .utility import beat_track
 from .utility import segment_scorer as scorer
 from .utility import utility as util
+import logging
 
+logger = logging.getLogger("analysis")
 hop_length = 512
 
 transition_points = {}
@@ -37,7 +39,7 @@ def segment_song(config, signal, times_of_beats):
 def find_best_segments(config, song, tsl_list, bias_mode, entry_point):
     mono_signal = song['mono']
 
-    print(f"INFO - Analysis: Beat detection for '{song['name']}'.")
+    logger.info(f"INFO - Analysis: Beat detection for '{song['name']}'.")
     # # aubio
     # times_of_beats_a, bpm_a = beat_track.aubio_beat_tracking(song_a['path'], sample_rate)
     # # aubio with lpf before
@@ -48,19 +50,19 @@ def find_best_segments(config, song, tsl_list, bias_mode, entry_point):
     times_of_beats, stop_times_of_beats = beat_track.librosa_beat_tracking_with_mono_signal(config, song, entry_point)
 
     # split song into clip segments of even number of consecutive beats
-    print("INFO - Analysis: Creating segments for comparison.")
+    logger.info("INFO - Analysis: Creating segments for comparison.")
     areas, clips = segment_song(config, mono_signal, times_of_beats)
 
     # score segments using segment_scorer utility class
     segment_scores = scorer.score_segments(config, clips, areas, entry_point, bias_mode=bias_mode)
 
-    #print(f"segment scores: length of 1: {len(segment_scores_a)}, 2: {len(segment_scores_b)}")
+    #logger.info(f"segment scores: length of 1: {len(segment_scores_a)}, 2: {len(segment_scores_b)}")
 
     # determine best transition candidates
     best_segment_index = segment_scores.tolist().index(min(segment_scores))
 
-    #print(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
-    #print(segment_times1)#
+    #logger.info(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
+    #logger.info(segment_times1)#
 
     transition_points = {}
 

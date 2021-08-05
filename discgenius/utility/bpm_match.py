@@ -1,5 +1,6 @@
 from os import path
 import os
+import logging
 
 import librosa
 from scipy import signal
@@ -9,10 +10,13 @@ import numpy
 
 from . import utility as util
 
+logger = logging.getLogger("utility.bpm_match")
+
 
 def scipy_resample(frame_array, ratio):
     amount_of_frames = int(len(frame_array) * ratio)
     return signal.resample(frame_array, amount_of_frames)
+
 
 # TODO this could use song[filename] and song[name] instead of the song_name parameter
 def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
@@ -24,7 +28,7 @@ def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
 
     # if song with bpm exists, use existing
     if path.exists(new_filepath):
-        # print(f"SKIP - Song '{new_filepath}' already exists.")
+        # logger.warn(f"SKIP - Song '{new_filepath}' already exists.")
         return new_song_name
 
     sample_rate = song['frame_rate']
@@ -42,7 +46,7 @@ def adjust_tempo(config, song_name, bpm, desired_bpm, song=None):
 
     # librosa.output.write_wav(new_filepath, song_resampled, sample_rate)
     sf.write(new_filepath, data_resampled, sample_rate)
-    print(f"INFO - Saved adjusted song to '{new_filepath}'")
+    logger.info(f"INFO - Saved adjusted song to '{new_filepath}'")
     return new_song_name
 
 
@@ -50,7 +54,7 @@ def match_bpm_first(config, song_a, tempo_a, song_b, tempo_b):
     if tempo_a == tempo_b:
         return song_a, song_b
 
-    print(f"INFO - Matching song B ({tempo_b}) to tempo of song A ({tempo_a}).")
+    logger.info(f"INFO - Matching song B ({tempo_b}) to tempo of song A ({tempo_a}).")
     adjusted_song_b_name = adjust_tempo(config, song_b['filename'], tempo_b, tempo_a, song=song_b)
     song_b_adjusted = util.read_wav_file(config, filepath=f"{config['song_analysis_path']}/{adjusted_song_b_name}", debug_info=False, identifier='songB')
 
@@ -60,17 +64,17 @@ def match_bpm_first(config, song_a, tempo_a, song_b, tempo_b):
 def match_bpm_desired(config, song_a, song_b, desired_bpm, bpm_a, bpm_b):
     if bpm_a == desired_bpm:
         song_a_adjusted = song_a
-        print(f"INFO - song A ({bpm_a}) already at desired tempo ({desired_bpm}).")
+        logger.info(f"INFO - song A ({bpm_a}) already at desired tempo ({desired_bpm}).")
     else:
-        print(f"INFO - Matching song A ({bpm_a}) to desired tempo ({desired_bpm}).")
+        logger.info(f"INFO - Matching song A ({bpm_a}) to desired tempo ({desired_bpm}).")
         adjusted_song_a_name = adjust_tempo(config, song_a['filename'], bpm_a, desired_bpm, song=song_a)
         song_a_adjusted = util.read_wav_file(config, filepath=f"{config['song_analysis_path']}/{adjusted_song_a_name}", debug_info=False, identifier='songA')
 
     if bpm_b == desired_bpm:
         song_b_adjusted = song_b
-        print(f"INFO - song B ({bpm_b}) already at desired tempo ({desired_bpm}).")
+        logger.info(f"INFO - song B ({bpm_b}) already at desired tempo ({desired_bpm}).")
     else:
-        print(f"INFO - Matching song B ({bpm_b}) to desired tempo ({desired_bpm}).")
+        logger.info(f"INFO - Matching song B ({bpm_b}) to desired tempo ({desired_bpm}).")
         adjusted_song_b_name = adjust_tempo(config, song_b['filename'], bpm_b, desired_bpm, song=song_b)
         song_b_adjusted = util.read_wav_file(config, filepath=f"{config['song_analysis_path']}/{adjusted_song_b_name}", debug_info=False, identifier='songB')
 

@@ -8,6 +8,10 @@ from starlette.testclient import TestClient
 from ..api import app
 from ..utility import common
 
+import logging
+
+logger = logging.getLogger()
+
 EXAMPLE_AUDIO = "mini-audio"
 WAV_EXTENSION = 'wav'
 WAV_AUDIO_PATH = f"discgenius/tests/{EXAMPLE_AUDIO}.{WAV_EXTENSION}"
@@ -56,7 +60,6 @@ class TestAPIUpload(unittest.TestCase):
         url_params = f"filename={EXAMPLE_AUDIO}&extension={WAV_EXTENSION}&bpm={BPM}"
         response = self.client.post(f"/upload?{url_params}", self.example_audio_wav)
         assert 200 == response.status_code
-        print(response.json())
         assert f"{EXAMPLE_AUDIO}_{BPM}.{WAV_EXTENSION}" == response.json()['filename']
 
     def test_filename_shorter_4(self):

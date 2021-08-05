@@ -5,6 +5,10 @@ import numpy
 import asyncio
 import matplotlib.pyplot as plt
 
+import logging
+
+logger = logging.getLogger("utility.segment_scorer")
+
 #calculates the averages of a librosa stft output
 def calc_stft_averages(stft):
     return [numpy.average(t) for t in stft]
@@ -49,13 +53,13 @@ def score_segments(config, clips, areas, entry_point, bias_mode=False):
     # depending on that only first or last part will be analyzed
     if bias_mode:
         boundaries = [0, iterations]
-        print(f"INFO - Analysis: Rating & comparing segments for first part of song B.")
+        logger.info(f"INFO - Analysis: Rating & comparing segments for first part of song B.")
     else:
         boundaries = [int(len(areas)*mix_area_b), len(areas)]
-        print(f"INFO - Analysis: Rating & comparing segments for last part of song A.")
+        logger.info(f"INFO - Analysis: Rating & comparing segments for last part of song A.")
 
-    print(f"\t\t Amount of areas: {len(areas)}, amount of clips: {len(clips)}, mix area value: {mix_area_a}.")
-    print(f"\t\t Running {iterations} iterations, using indexes {boundaries[0]} - {boundaries[1]}.")
+    logger.info(f"\t\t Amount of areas: {len(areas)}, amount of clips: {len(clips)}, mix area value: {mix_area_a}.")
+    logger.info(f"\t\t Running {iterations} iterations, using indexes {boundaries[0]} - {boundaries[1]}.")
 
     scores = calculate_scores(config, clip_stfts, areas, boundaries)
     return scores

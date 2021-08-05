@@ -9,13 +9,15 @@ from pymongo.errors import ServerSelectionTimeoutError
 from .database_manager import DatabaseManager
 from ..fastapi.user_model import UserDB
 
+logger = logging.getLogger()
+
 
 class MongoManager(DatabaseManager):
     client: AsyncIOMotorClient = None
     db: AsyncIOMotorDatabase = None
 
     async def connect_to_database(self, path: str, username: str = "", password: str = ""):
-        logging.info("Connecting to MongoDB.")
+        logger.info("Connecting to MongoDB.")
         if username and password:
             self.client = AsyncIOMotorClient(
                 path,
@@ -35,18 +37,18 @@ class MongoManager(DatabaseManager):
         self.db = self.client.discgenius
         try:
             self.db.list_collection_names()
-            logging.info(f"Connection to DB with address '{path}' was successful.")
+            logger.info(f"Connection to DB with address '{path}' was successful.")
         except ServerSelectionTimeoutError as err:
-            logging.error(f"Timeout while connecting to external DB, error: {err}")
+            logger.error(f"Timeout while connecting to external DB, error: {err}")
             raise RuntimeError(
                 f"Connecting to db {path} failed! Please check the "
                 f"used credentials.")
-        logging.info("Connected to MongoDB.")
+        logger.info("Connected to MongoDB.")
 
     async def close_database_connection(self):
-        logging.info("Closing connection with MongoDB.")
+        logger.info("Closing connection with MongoDB.")
         self.client.close()
-        logging.info("Closed connection with MongoDB.")
+        logger.info("Closed connection with MongoDB.")
 
     async def get_posts(self) -> List[UserDB]:
         posts_list = []

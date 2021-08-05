@@ -12,8 +12,11 @@ from scipy.signal import butter, lfilter
 
 from . import common
 
-SAMPLE_RATE = common.get_config('content.ini')['sample_rate']
+import logging
 
+logging.getLogger("utility.sound_manipulation")
+
+SAMPLE_RATE = common.get_config('content.ini')['sample_rate']
 
 ################################################################ filter types ################################################################
 
@@ -161,12 +164,12 @@ def cut_bass_for_last_bar(list_of_frames, length_of_segment):
     length_in_frames = len(list_of_frames)
     frames_to_edit = round(length_in_frames / length_of_segment)
     if frames_to_edit > 100000:
-        print("INFO - 1 bar bass cut has probably not the right length... 1 bar frames: '%s', length of segment %s." % (
+        logger.info("INFO - 1 bar bass cut has probably not the right length... 1 bar frames: '%s', length of segment %s." % (
             frames_to_edit, length_of_segment))
     start = length_in_frames - frames_to_edit
 
-    # print("Removing bass from last bar of segment.")
-    # print("start: %s, end: %s" % (start, length_in_frames))
+    # logger.info("Removing bass from last bar of segment.")
+    # logger.info("start: %s, end: %s" % (start, length_in_frames))
 
     frames_with_no_bass = []
     for i in range(start, length_in_frames):

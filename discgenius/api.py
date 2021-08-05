@@ -27,7 +27,7 @@ from .utility.model import song_helper, mix_helper, response_model, error_respon
 from .utility.mongodb import ConnectionManager
 
 logger = logging.getLogger()
-logger.name = "cme"
+logger.name = "discgenius"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(name)s [%(levelname).1s]: %(message)s',
@@ -53,16 +53,16 @@ manager = ConnectionManager()
 
 
 def on_after_register(user: UserDB, request: Request):
-    print(f"User {user.id} has registered.")
-    print(f"user track")
+    logger.info(f"User {user.id} has registered.")
+    logger.info(f"user track")
 
 
 def on_after_forgot_password(user: UserDB, token: str, request: Request):
-    print(f"User {user.id} has forgot their password. Reset token: {token}")
+    logger.info(f"User {user.id} has forgot their password. Reset token: {token}")
 
 
 def after_verification_request(user: UserDB, token: str, request: Request):
-    print(f"Verification requested for user {user.id}. Verification token: {token}")
+    logger.info(f"Verification requested for user {user.id}. Verification token: {token}")
 
 
 jwt_authentication = JWTAuthentication(
@@ -208,7 +208,6 @@ async def upload_song(request: Request,
                       bpm: str = "",
                       # file: bytes = Form(...)
                       ):
-    # print(len(file))
     body = await request.body()
 
     if filename == "" or extension == "":
@@ -224,7 +223,7 @@ async def upload_song(request: Request,
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"receiving upload from user {user_id}")
+    logger.info(f"receiving upload from user {user_id}")
     # TODO get similar song names from grid fs for safe song creation
 
     # create temp file to run bpm detection on
@@ -253,7 +252,7 @@ async def upload_song(request: Request,
 
     _filename = await controller.generate_safe_song_name(config, filename, 'wav', bpm, song_db)
 
-    print("saving track to gridfs")
+    logger.info(f"saving track {_filename} to gridfs")
     with open(temp_wav_path, 'rb') as f:
         grid_in = fs.open_upload_stream(
             _filename)
@@ -267,7 +266,7 @@ async def upload_song(request: Request,
             await grid_in.write(f.read())
             await grid_in.close()
 
-    print("saving song object to song db")
+    logger(f"saving song object to song db")
     song_data = {
         "title": str(_filename),
         "length": str(song_length),
@@ -338,11 +337,11 @@ async def upload_song(request: Request,
 #
 #     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name)
 #
-#     print(f"INFO - A new mix will get created from songs '{mix_a_name}' & '{song_b_name}'.")
-#     print(
+#     logger.info(f"INFO - A new mix will get created from songs '{mix_a_name}' & '{song_b_name}'.")
+#     logger.info(
 #         f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
-#     print(f"       Mix name: '{mix_name}'.")
-#     print()
+#     logger.info(f"       Mix name: '{mix_name}'.")
+#     logger.info()
 #
 #     return controller.mix_two_files(config, mix_a_name, song_b_name, bpm_a, bpm_b, desired_bpm, mix_name, scenario_name,
 #                                     transition_points, entry_point, exit_point, num_songs_a)
@@ -371,7 +370,7 @@ async def mix(request: Request,
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"receiving create mix request from user {user_id}")
+    logger.info(f"receiving create mix request from user {user_id}")
 
     if song_a_name == "" or song_b_name == "" or scenario_name == "":
         raise_exception(status_code=422, detail=util.read_api_detail(config))
@@ -437,7 +436,7 @@ async def mix(request: Request,
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name, transition_length,
                                                  transition_midpoint)
 
-    print("saving initial mix object")
+    logger.debug("saving initial mix object to mix db")
     mix_id = await mix_db.insert_one({
         "title": str(mix_name),
         "bpm": float(desired_bpm),
@@ -448,11 +447,11 @@ async def mix(request: Request,
         "progress": int(10)
     })
 
-    print(f"INFO - A new mix will get created from songs '{song_a_name}' & '{song_b_name}'.")
-    print(
+    logger.info(f"INFO - A new mix will get created from songs '{song_a_name}' & '{song_b_name}'.")
+    logger.info(
         f"       Transition length: {transition_length}, Transition midpoint: {transition_midpoint}, Desired bpm: '{desired_bpm}'.")
-    print(f"       Mix name: '{mix_name}'.")
-    print()
+    logger.info(f"       Mix name: '{mix_name}'.")
+    logger.info("")
 
     # new_task = Job()
     # jobs[new_task.uid] = new_task
@@ -476,7 +475,7 @@ async def mix(request: Request,
     }
 
     background_tasks.add_task(controller.mix_two_files, param)
-    return {"message": f"Mix creation started: ID: {mix_id.inserted_id} "}
+    return {"message": f"Mix creation for {mix_name} started: ID: {mix_id.inserted_id} "}
     # return new_task
 
     # return await controller.mix_two_files(config,
@@ -561,7 +560,7 @@ async def get_mix_media(background_tasks: BackgroundTasks, name: str = ""):
         return error_response_model("Not Found", "404", "Mix not found")
 
 
-@app.get("/getSong")
+@app.get("/getSong/{name}")
 async def get_song(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
         raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
@@ -611,7 +610,7 @@ async def websocket_endpoint(background_tasks: BackgroundTasks, websocket: WebSo
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"receiving playback request from user {user_id}")
+    logger.info(f"receiving playback request from user {user_id}")
     if name == "":
         raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
 
@@ -649,7 +648,7 @@ async def get_songs(request: Request):
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"providing song list request from user {user_id}")
+    logger.info(f"providing song list request from user {user_id}")
     songs = []
     cursor = song_db.find({"user_id": f"{user_id}"})
     async for song in cursor:
@@ -668,7 +667,7 @@ async def delete_song(request: Request, target_id: str = ""):
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"providing song list request for user {user_id}")
+    logger.info(f"providing song list request for user {user_id}")
     songs = []
     cursor = song_db.find({
         "user_id": f"{user_id}"})
@@ -701,7 +700,7 @@ async def get_mixes(request: Request):
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"providing song list request from user {user_id}")
+    logger.info(f"providing song list request from user {user_id}")
     mixes = []
     cursor = mix_db.find({"user_id": f"{user_id}"})
     async for mix in cursor:
@@ -721,7 +720,7 @@ async def delete_mixes(request: Request, target_id: str = ""):
     auth_token = auth_header.split(' ')[-1]
     auth_token_data = jwt.decode(auth_token, SECRET, algorithms=['HS256'], audience="fastapi-users:auth")
     user_id = auth_token_data['user_id']
-    print(f"providing song list request for user {user_id}")
+    logger.info(f"providing song list request for user {user_id}")
     mixes = []
     cursor = mix_db.find({
         "user_id": f"{user_id}"})

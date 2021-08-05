@@ -1,19 +1,19 @@
-import os
-import time
 import datetime
 import io
+import logging
+import os
+import time
 
-from . import evaluator
-from . import mixer
+from bson.objectid import ObjectId
+
 from . import analysis
+from . import mixer
 from .utility import audio_file_converter as converter
-from .utility import utility as util
 from .utility import bpm_match
+from .utility import utility as util
 from .utility.model import error_response_model, song_helper
 
-from pymongo.collection import Collection
-from bson.objectid import ObjectId
-from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+logger = logging.getLogger("controller")
 
 
 async def generate_safe_song_name(config, filename, extension, bpm, song_db):
@@ -166,7 +166,7 @@ async def mix_two_files(param):
             {"$set": update_data}
         )
         if not mix_update0:
-            print("mix update #0 failed")
+            logger.error("mix update #0 failed")
 
         # TSL = Transition Segment Length
         tsl_list = [config['transition_midpoint'], config['transition_length'] - config['transition_midpoint']]
@@ -195,7 +195,7 @@ async def mix_two_files(param):
             {"$set": update_data}
         )
         if not mix_update1:
-            print("mix update #1 failed")
+            logger.info("mix update #1 failed")
 
         # 2. analyse songs
         if transition_points:
@@ -205,7 +205,7 @@ async def mix_two_files(param):
             then = time.time()
             transition_points = analysis.get_transition_points(config, song_a_adjusted, song_b_adjusted, exit_point, entry_point, tsl_list)
             now = time.time()
-            print("INFO - Analysing file took: %0.1f seconds. \n" % (now - then))
+            logger.info("INFO - Analysing file took: %0.1f seconds. \n" % (now - then))
 
         update_data = {
             "transition_points": transition_points,
@@ -216,21 +216,20 @@ async def mix_two_files(param):
             {"$set": update_data}
         )
         if not mix_update2:
-            print("mix update #2 failed")
+            logger.info("mix update #2 failed")
 
-        print(f"Transition points (seconds): {transition_points}")
-        print(f"Transition points (minutes): {util.get_length_for_transition_points(config, transition_points)}")
-        print(f"Transition interval lengths (C-D-E): {round(transition_points['d']-transition_points['c'], 3)}s, {round(transition_points['e']-transition_points['d'], 3)}s")
-        print(f"Transition interval lengths (A-B-X): {round(transition_points['b']-transition_points['a'], 3)}s, {round(transition_points['x']-transition_points['b'], 3)}s")
-        print()
+        logger.info(f"Transition points (seconds): {transition_points}")
+        logger.info(f"Transition points (minutes): {util.get_length_for_transition_points(config, transition_points)}")
+        logger.info(f"Transition interval lengths (C-D-E): {round(transition_points['d']-transition_points['c'], 3)}s, {round(transition_points['e']-transition_points['d'], 3)}s")
+        logger.info(f"Transition interval lengths (A-B-X): {round(transition_points['b']-transition_points['a'], 3)}s, {round(transition_points['x']-transition_points['b'], 3)}s")
 
         # 3. mix both songs
         then = time.time()
         frames = util.calculate_frames(config, song_a_adjusted, song_b_adjusted, transition_points)
-        # print("Frames: %s" % frames)
+        # logger.info("Frames: %s" % frames)
         mixed_song = mixer.create_mixed_wav_file(config, song_a_adjusted, song_b_adjusted, transition_points, frames, tsl_list, mix_name, scenario_name)
         now = time.time()
-        print("INFO - Mixing file took: %0.1f seconds" % (now - then))
+        logger.info("INFO - Mixing file took: %0.1f seconds" % (now - then))
 
         mix_name_wav = mixed_song['name']
         file_path_wav = mixed_song['path']
@@ -250,7 +249,7 @@ async def mix_two_files(param):
             {"$set": update_data}
         )
         if not mix_update3:
-            print("mix update #3 failed")
+            logger.info("mix update #3 failed")
 
         # 4. convert to mp3
         # TODO figure out why wav filename is saved to mp3 title field and fix it
@@ -275,7 +274,7 @@ async def mix_two_files(param):
             {"$set": update_data}
         )
         if not mix_update4:
-            print("mix update #4 failed")
+            logger.info("mix update #4 failed")
 
         # 5. export json data
         scenario_data = util.get_scenario(config, scenario_name)

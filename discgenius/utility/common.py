@@ -6,8 +6,11 @@
 
 import configparser
 import sys
+import logging
 
 from . import utility as util
+
+logger = logging.getLogger("utility.common")
 
 
 def get_parser(content_path):
@@ -15,7 +18,7 @@ def get_parser(content_path):
     parser = configparser.ConfigParser()
     file_list = parser.read(parser_file_list)
     if len(file_list) == 0:
-        print("CMERR0 missing configuration files: {}".format(parser_file_list))
+        logger.info("CMERR0 missing configuration files: {}".format(parser_file_list))
         sys.exit(2)
 
     return parser
@@ -25,10 +28,10 @@ def get_boolean_parameter(parser, section, parameter):
     try:
         return parser.getboolean(section, parameter)
     except configparser.NoOptionError as error:
-        print("CMERR1 - Can't read configuration: ", error)
+        logger.info("CMERR1 - Can't read configuration: ", error)
         raise SystemExit(1)
     except configparser.NoSectionError as error:
-        print("CMERR2 - Can't read configuration: ", error)
+        logger.info("CMERR2 - Can't read configuration: ", error)
         raise SystemExit(2)
 
 
@@ -36,10 +39,10 @@ def get_string_parameter(parser, section, parameter):
     try:
         return parser.get(section, parameter)
     except configparser.NoOptionError as error:
-        print("CMERR3 - Can't read configuration: ", error)
+        logger.info("CMERR3 - Can't read configuration: ", error)
         raise SystemExit(1)
     except configparser.NoSectionError as error:
-        print("CMERR4 - Can't read configuration: ", error)
+        logger.info("CMERR4 - Can't read configuration: ", error)
         raise SystemExit(2)
 
 
@@ -61,10 +64,10 @@ def get_list_parameter(parser, section, parameter):
         s = parser.get(section, parameter)
         return convert_to_list(s)
     except configparser.NoOptionError as error:
-        print("CMERR5 - Can't read configuration: ", error)
+        logger.info("CMERR5 - Can't read configuration: ", error)
         raise SystemExit(1)
     except configparser.NoSectionError as error:
-        print("CMERR6 - Can't read configuration: ", error)
+        logger.info("CMERR6 - Can't read configuration: ", error)
         raise SystemExit(2)
 
 

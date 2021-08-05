@@ -21,11 +21,14 @@ import argparse
 import array
 import math
 import wave
+import logging
 
 import matplotlib.pyplot as plt
 import numpy
 import pywt
 from scipy import signal
+
+logger = logging.getLogger("utility.bpm_detection")
 
 
 def read_wav(config, filename):
@@ -34,7 +37,7 @@ def read_wav(config, filename):
         wf = wave.open(f"{config['song_analysis_path']}/{filename}", "rb")
         # wf = wave.open(filename, "rb")
     except IOError as e:
-        print(e)
+        logger.error(e)
         return
 
     # typ = choose_type( wf.getsampwidth() ) # TODO: implement choose_type
@@ -50,14 +53,14 @@ def read_wav(config, filename):
     try:
         assert nsamps == len(samps)
     except AssertionError:
-        print(nsamps, "not equal to", len(samps))
+        logger.error(nsamps, "not equal to", len(samps))
 
     return samps, fs
 
 
 # print an error when no data can be found
 def no_audio_data():
-    print("No audio data for sample, skipping...")
+    logger.info("No audio data for sample, skipping...")
     return None, None
 
 
@@ -123,7 +126,7 @@ def bpm_detector(data, fs):
 
     peak_ndx_adjusted = peak_ndx[0] + min_ndx
     bpm = 60.0 / peak_ndx_adjusted * (fs / max_decimation)
-    #print(bpm)
+    #logger.info(bpm)
     return bpm, correl
 
 

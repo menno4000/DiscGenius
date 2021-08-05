@@ -14,6 +14,8 @@ import datetime
 import pprint
 import sys
 
+import logging
+
 import librosa
 import numpy as np
 
@@ -24,6 +26,8 @@ from .utility import utility as util
 TSL_LIST = []
 SCENARIO = {}
 pp = pprint.PrettyPrinter(indent=2)
+
+logger = logging.getLogger("mixer")
 
 
 # Song A with full Bass
@@ -49,7 +53,7 @@ def modify_transition_segment_1(frame_array_a, frame_array_b):
     elif scenario_name == "CF_1.0":
         transition_song_a, transition_song_b = scenarios.crossfade_segment_1(frame_array_a, frame_array_b, SCENARIO)
     else:
-        print("ERROR - Could not find a valid transition scenario.")
+        logger.error("ERROR - Could not find a valid transition scenario.")
         return
 
     # mix two audio signals
@@ -82,7 +86,7 @@ def modify_transition_segment_2(frame_array_a, frame_array_b):
     elif scenario_name == "CF_1.0":
         transition_song_a, transition_song_b = scenarios.crossfade_segment_2(frame_array_a, frame_array_b, SCENARIO)
     else:
-        print("ERROR - Could not find a valid transition scenario.")
+        logger.error("ERROR - Could not find a valid transition scenario.")
         return
 
     combined_songs = []
@@ -97,7 +101,7 @@ def mix_transition_segments(song_a, song_b, frames):
     segment_channels_a = [[], []]
     segment_channels_b = [[], []]
 
-    print("\t\t  Calculating Transition Segment: C -- D, Length in bars: '%s'" % TSL_LIST[0])
+    logger.info("\t\t  Calculating Transition Segment: C -- D, Length in bars: '%s'" % TSL_LIST[0])
     for i in range(frames['between_c_and_d']):
         frame_for_a = frames['until_c'] + i
         frame_for_b = frames['until_a'] + i
@@ -107,7 +111,7 @@ def mix_transition_segments(song_a, song_b, frames):
         segment_channels_b[0].append(song_b['left_channel'][frame_for_b])
         segment_channels_b[1].append(song_b['right_channel'][frame_for_b])
 
-    print("\t\t\tModify Frames of Song A & B for Transition Segment C--D")
+    logger.info("\t\t\tModify Frames of Song A & B for Transition Segment C--D")
     transition_segment_1_left = modify_transition_segment_1(segment_channels_a[0], segment_channels_b[0])
     transition_segment_1_right = modify_transition_segment_1(segment_channels_a[1], segment_channels_b[1])
 
@@ -115,7 +119,7 @@ def mix_transition_segments(song_a, song_b, frames):
     segment_channels_a = [[], []]
     segment_channels_b = [[], []]
 
-    print("\t\t  Calculating Transition Segment: D -- E, Length in bars: '%s'" % TSL_LIST[1])
+    logger.info("\t\t  Calculating Transition Segment: D -- E, Length in bars: '%s'" % TSL_LIST[1])
     # todo: if e > song length do sth...
     for i in range(frames['between_d_and_e']):
         frame_for_a = frames['until_d'] + i
@@ -126,11 +130,11 @@ def mix_transition_segments(song_a, song_b, frames):
         segment_channels_b[0].append(song_b['left_channel'][frame_for_b])
         segment_channels_b[1].append(song_b['right_channel'][frame_for_b])
 
-    print("\t\t\tModify Frames of Song A & B for Transition Segment D--E")
+    logger.info("\t\t\tModify Frames of Song A & B for Transition Segment D--E")
     transition_segment_2_left = modify_transition_segment_2(segment_channels_a[0], segment_channels_b[0])
     transition_segment_2_right = modify_transition_segment_2(segment_channels_a[1], segment_channels_b[1])
 
-    print("\t       Adding transition segments 1 & 2 to mix.")
+    logger.info("\t       Adding transition segments 1 & 2 to mix.")
     transition_segment_left = np.append(transition_segment_1_left, transition_segment_2_left)
     transition_segment_right = np.append(transition_segment_1_right, transition_segment_2_right)
 
@@ -145,29 +149,29 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
     sample_rate = config['sample_rate']
 
     # util.log_info_about_mix(song_a, song_b, transition_points, frames)
-    print("INFO - Mixing: Start process of mixing two given songs. Scenario:")
-    pp.pprint(SCENARIO)
+    logger.info("INFO - Mixing: Start process of mixing two given songs. Scenario:")
+    # pp.pprint(SCENARIO)
 
     if not song_a['frame_rate'] == sample_rate and not song_b['frame_rate'] == sample_rate:
-        # print(f"ERROR - Skipping mixing because sample rate is not {sample_rate}Hz for both songs.")
+        # logger.error(f"ERROR - Skipping mixing because sample rate is not {sample_rate}Hz for both songs.")
         # sys.exit()
         song_a['frame_rate'] = sample_rate
         song_b['frame_rate'] = sample_rate
 
-    print("INFO - Mixing: Adding unmodified frames of song A to mix. Length: '%0.2f's" % transition_points['c'])
+    logger.info("INFO - Mixing: Adding unmodified frames of song A to mix. Length: '%0.2f's" % transition_points['c'])
     # reading song a just until point C and get all frames for both channels
     song_x = librosa.core.load(song_a['path'], sr=sample_rate, duration=transition_points['c'], mono=False)
     left_mix_channel = song_x[0][0]
     right_mix_channel = song_x[0][1]
 
-    print("INFO - Mixing: Creating transition segments between A & B. Length: '%0.2f's" % (
+    logger.info("INFO - Mixing: Creating transition segments between A & B. Length: '%0.2f's" % (
             transition_points['e'] - transition_points['c']))
     transition_segment_left, transition_segment_right = mix_transition_segments(song_a, song_b, frames)
     left_mix_channel = np.append(left_mix_channel, transition_segment_left)
     right_mix_channel = np.append(right_mix_channel, transition_segment_right)
     del transition_segment_left, transition_segment_right
 
-    print("INFO - Mixing: Adding unmodified frames of song B to mix. Length: '%0.2f's" % (
+    logger.info("INFO - Mixing: Adding unmodified frames of song B to mix. Length: '%0.2f's" % (
             song_b['total_frames'] / sample_rate - transition_points['x']))
     transition_time = transition_points['e'] - transition_points['c']
     start_of_b = int(round((transition_points['a'] + transition_time) * sample_rate))
@@ -179,7 +183,7 @@ def create_mixed_wav_file(config, song_a, song_b, transition_points, frames, tsl
     left_mix_channel = np.append(left_mix_channel, np.asarray(current_mix[0], dtype='float32'))
     right_mix_channel = np.append(right_mix_channel, np.asarray(current_mix[1], dtype='float32'))
 
-    print("INFO - Mixing: Creation of a mix finished. Amount of frames: '%s', Length: '%sm'" % (
+    logger.info("INFO - Mixing: Creation of a mix finished. Amount of frames: '%s', Length: '%sm'" % (
         len(left_mix_channel), util.get_length_out_of_frames(config, len(left_mix_channel))))
 
     mix_array = [[dL, dR] for dL, dR in zip(left_mix_channel, right_mix_channel)]

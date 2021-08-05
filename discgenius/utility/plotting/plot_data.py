@@ -7,6 +7,10 @@ import pylab
 import sys
 import glob
 
+import logging
+
+logger = logging.getLogger("utility.plotting.plot_data")
+
 ROOT_DIR = os.path.abspath(os.curdir)
 
 
@@ -33,7 +37,7 @@ def extend_list(data, target_resolution, midpoint, interpolate=True, cut_offset=
     ratio = int(np.floor((target_resolution - cut_offset) / len(data)))
     offset_ratio = int(np.floor(target_resolution / len(data)))
     offset = target_resolution - (offset_ratio * len(data))
-    print(ratio, offset_ratio, offset)
+    logger.info(ratio, offset_ratio, offset)
     result = []
     result.extend(np.full(int(np.floor(offset / 2)), data[0]))
     cut_performed = False
@@ -152,7 +156,7 @@ def plot_eq(plot_name, target_path, song_a_highs, song_a_mids, song_a_lows, song
     plt.gca().yaxis.set_major_locator(plt.NullLocator())
     plt.savefig(plot_name, transparent=True, bbox_inches='tight')
     plot_with_extension = f"{plot_name}.png"
-    print(f"Saved plot image to {target_path}/{plot_with_extension}")
+    logger.info(f"Saved plot image to {target_path}/{plot_with_extension}")
     return plot_with_extension
 
 

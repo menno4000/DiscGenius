@@ -1,5 +1,6 @@
 from os import path
 import json
+import logging
 
 from .sound_manipulation import high_cut_filter
 from .utility import read_wav_file, save_wav_file
@@ -8,16 +9,18 @@ import numpy
 import aubio
 import librosa
 
+logger = logging.getLogger("utility.beat_track")
+
 
 def aubio_beats_to_bpm(beats):
     # if enough beats are found, convert to periods then to bpm
     if len(beats) > 1:
         if len(beats) < 4:
-            print("few beats found.")
+            logger.error("few beats found.")
         bpms = 60./numpy.diff(beats)
         return numpy.median(bpms)
     else:
-        print("not enough beats found")
+        logger.error("not enough beats found")
         return 0
 
 
@@ -25,7 +28,7 @@ def aubio_beat_tracking(filepath, sample_rate, win_s=512):
     win_s = win_s               # fft size
     hop_s = win_s // 2          # hop size
     src = aubio.source(filepath, hop_size=hop_s)
-    #print(f"file: {src.uri}, samplerate: {src.samplerate}, channels: {src.channels}, duration: {src.duration/src.samplerate}")
+    #logger.info(f"file: {src.uri}, samplerate: {src.samplerate}, channels: {src.channels}, duration: {src.duration/src.samplerate}")
 
     o = aubio.tempo("default", win_s, hop_s, sample_rate)
 
@@ -43,13 +46,13 @@ def aubio_beat_tracking(filepath, sample_rate, win_s=512):
         is_beat = o(samples)
         if is_beat:
             this_beat = int(total_frames - delay + is_beat[0] * hop_s)
-            #print("%f" % (this_beat / float(SAMPLE_RATE)))
+            #logger.info("%f" % (this_beat / float(SAMPLE_RATE)))
             beats.append(this_beat/sample_rate)
         total_frames += read
         if read < hop_s: break
 
     bpm = aubio_beats_to_bpm(beats)
-    print(f"INFO - Analysis: Aubio beat detection finished. BPM of song: {bpm}, amount of beats found: {len(beats)}")
+    logger.info(f"INFO - Analysis: Aubio beat detection finished. BPM of song: {bpm}, amount of beats found: {len(beats)}")
     return beats, bpm
 
 
@@ -81,7 +84,7 @@ def librosa_beat_tracking(config, signal, song, entry_point):
     beat_tracking_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"
     if path.exists(beat_tracking_path):
         tempo, beats = get_beat_tracking_from_file(beat_tracking_path)
-        print(f"\t\t Read tempo & beats from file. BPM of song: {tempo}, amount of beats found: {len(beats)}")
+        logger.info(f"\t\t Read tempo & beats from file. BPM of song: {tempo}, amount of beats found: {len(beats)}")
     else:
         # compute onset envelopes
         onset_env = librosa.onset.onset_strength(y=signal_part, sr=sample_rate, aggregate=numpy.median)
@@ -92,7 +95,7 @@ def librosa_beat_tracking(config, signal, song, entry_point):
         # save beat tracking
         save_beat_tracking_to_file(beat_tracking_path, tempo, beats)
 
-        print(f"\t\t Librosa beat detection finished. BPM of song: {tempo}, amount of beats found: {len(beats)}")
+        logger.info(f"\t\t Librosa beat detection finished. BPM of song: {tempo}, amount of beats found: {len(beats)}")
 
     # create onset sample matrix from tracked beats
     onset_samples = list(librosa.frames_to_samples(beats))
