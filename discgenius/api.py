@@ -6,7 +6,7 @@ import logging
 import jwt
 import uvicorn
 from bson import ObjectId
-from fastapi import FastAPI, HTTPException, Body, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Body, BackgroundTasks, WebSocket, WebSocketDisconnect, Response, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import JWTAuthentication
@@ -25,6 +25,8 @@ from .utility.db import db
 from .utility.fastapi.user_model import UserDB, UserCreate, UserUpdate, User
 from .utility.model import song_helper, mix_helper, response_model, error_response_model
 from .utility.mongodb import ConnectionManager
+from pathlib import Path
+
 
 logger = logging.getLogger()
 logger.name = "discgenius"
@@ -50,6 +52,7 @@ USER_DB = config['user_col']
 SONGS_DB = config['tracks_col']
 MIX_DB = config['mixes_col']
 manager = ConnectionManager()
+CHUNK_SIZE = 1024*1024
 
 
 def on_after_register(user: UserDB, request: Request):
@@ -580,7 +583,40 @@ async def get_song(background_tasks: BackgroundTasks, name: str = ""):
         return error_response_model("Not Found", "404", "Song not found")
 
 
-@app.get("/getSongMedia")
+@app.get("/getSongBytes/{name}")
+async def get_song_bytes(background_tasks: BackgroundTasks, request: Request, name: str = ""):
+    if name == "":
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+    file = await download_file(name)
+    if file:
+        byte_range = request.headers['Range']
+        start, end = byte_range.replace("bytes=", "").split("-")
+        start = int(start)
+        end = int(end) if end else start + CHUNK_SIZE
+        file_suffix = name.split('.')[-1]
+        if file_suffix == 'mp3':
+            content_type = 'audio/mpeg'
+        elif file_suffix == 'wav':
+            content_type = 'audio/wav'
+        else:
+            raise HTTPException(status_code=422, detail="File ending not supported.")
+        audio_path = Path(name)
+        with open(audio_path, "rb") as audio:
+            audio.seek(start)
+            data = audio.read(end - start)
+            filesize = str(audio_path.stat().st_size)
+            headers = {
+                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
+                'Accept-Ranges': 'bytes'
+            }
+            response = Response(data, status_code=206, media_type=content_type, headers=headers)
+            background_tasks.add_task(clean_up_file, file)
+            return response
+    else:
+        return error_response_model("Not Found", "404", "Song not found")
+
+
+@app.get("/getSongMedia/{name}")
 async def get_song(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
         raise HTTPException(status_code=400, detail="Please provide the query param: 'name'.")
