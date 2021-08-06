@@ -385,12 +385,9 @@ async def mix(request: Request,
         _song_a = await song_db.find_one({"title": str(song_a_name)})
     if not _song_a:
         raise_exception(404,
-                        "track A could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
-    #     if not os.path.isfile(f"{config['mix_path']}/{song_a_name}"):
-    #         raise_exception(404, "mix A could not be found. Please check using GET '/mixes' which songs exist.")
-    # else:
-    #     if not os.path.isfile(f"{config['song_path']}/{song_a_name}"):
-    #         raise_exception(404, "song A could not be found. Please check using GET '/songs' which songs exist.")
+                        "track A could not be found. Please check using GET '/mixes' or GET '/songs' which tracks "
+                        "exist.")
+
     if num_songs_b > 1:
         entry_point = entry_point / num_songs_b
         _song_b = await mix_db.find_one({"title": str(song_b_name)})
@@ -398,17 +395,8 @@ async def mix(request: Request,
         _song_b = await song_db.find_one({"title": str(song_b_name)})
     if not _song_b:
         raise_exception(404,
-                        "track B could not be found. Please check using GET '/mixes' or GET '/songs' which tracks exist.")
-    #     if not os.path.isfile(f"{config['mix_path']}/{song_b_name}"):
-    #         raise_exception(404, "mix B could not be found. Please check using GET '/mixes' which songs exist.")
-    # else:
-    #     if not os.path.isfile(f"{config['song_path']}/{song_b_name}"):
-    #         raise_exception(404, "song B could not be found. Please check using GET '/songs' which songs exist.")
-    #
-    # if not os.path.isfile(f"{config['song_path']}/{song_a_name}") or not os.path.isfile(
-    #         f"{config['song_path']}/{song_b_name}"):
-    #     raise_exception(404, "One of the two given songs could not be found. "
-    #                          "Please check using GET '/songs' which songs exist.")
+                        "track B could not be found. Please check using GET '/mixes' or GET '/songs' which tracks "
+                        "exist.")
 
     if scenario_name not in SCENARIOS:
         raise_exception(422, "Transition scenario could not be found.")
@@ -439,6 +427,20 @@ async def mix(request: Request,
     mix_name = controller.generate_safe_mix_name(config, mix_name, desired_bpm, scenario_name, transition_length,
                                                  transition_midpoint)
 
+    song_list = []
+    if num_songs_a > 1:
+        song_list.extend(_song_a['song_list'])
+        transition_points_a = _song_a['transition_points']
+    else:
+        song_list.append(song_a_name.split('_')[0])
+        transition_points_a = []
+    if num_songs_b > 1:
+        song_list.extend(_song_b['song_list'])
+        transition_points_b = _song_b['transition_points']
+    else:
+        song_list.append(song_b_name.split('_')[0])
+        transition_points_b = []
+
     logger.debug("saving initial mix object to mix db")
     mix_id = await mix_db.insert_one({
         "title": str(mix_name),
@@ -447,6 +449,7 @@ async def mix(request: Request,
         "transition_length": int(transition_length),
         "transition_midpoint": int(transition_midpoint),
         "user_id": str(user_id),
+        "song_list": song_list,
         "progress": int(10)
     })
 
@@ -474,7 +477,9 @@ async def mix(request: Request,
         'num_songs_b': num_songs_b,
         'mix_id': mix_id.inserted_id,
         'mix_db': mix_db,
-        'fs': fs
+        'fs': fs,
+        'tps_a': transition_points_a,
+        'tps_b': transition_points_b
     }
 
     background_tasks.add_task(controller.mix_two_files, param)
@@ -540,7 +545,40 @@ async def get_mix(background_tasks: BackgroundTasks, name: str = ""):
         return error_response_model("Not Found", "404", "Mix not found")
 
 
-@app.get("/getMixMedia")
+@app.get("/getMixBytes/{name}")
+async def get_mix_bytes(background_tasks: BackgroundTasks, request: Request, name: str = ""):
+    if name == "":
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+    file = await download_file(name)
+    if file:
+        byte_range = request.headers['Range']
+        start, end = byte_range.replace("bytes=", "").split("-")
+        start = int(start)
+        end = int(end) if end else start + CHUNK_SIZE
+        file_suffix = name.split('.')[-1]
+        if file_suffix == 'mp3':
+            content_type = 'audio/mpeg'
+        elif file_suffix == 'wav':
+            content_type = 'audio/wav'
+        else:
+            raise HTTPException(status_code=422, detail="File ending not supported.")
+        audio_path = Path(name)
+        with open(audio_path, "rb") as audio:
+            audio.seek(start)
+            data = audio.read(end - start)
+            filesize = str(audio_path.stat().st_size)
+            headers = {
+                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
+                'Accept-Ranges': 'bytes'
+            }
+            response = Response(data, status_code=206, media_type=content_type, headers=headers)
+            background_tasks.add_task(clean_up_file, file)
+            return response
+    else:
+        return error_response_model("Not Found", "404", "Mix not found")
+
+
+@app.get("/getMixMedia/{name}")
 async def get_mix_media(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
         raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")

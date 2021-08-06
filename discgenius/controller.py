@@ -122,6 +122,8 @@ async def mix_two_files(param):
     mix_id = param['mix_id']
     mix_db = param['mix_db']
     fs = param['fs']
+    tps_a = param['tps_a']
+    tps_b = param['tps_b']
 
     # TODO implement correct second track handling
 
@@ -242,7 +244,8 @@ async def mix_two_files(param):
         update_data = {
             "title": mix_name_wav,
             "length": length,
-            "progress": 80
+            "progress": 80,
+            "transition_points": [tps_a, [transition_points['c'], transition_points['d'], transition_points['e']], tps_b]
         }
         mix_update3 = await mix_db.update_one(
             {"_id": ObjectId(mix_id)},
@@ -259,19 +262,18 @@ async def mix_two_files(param):
                 mixed_song['name_mp3'] = mix_name_mp3
                 mixed_song['path_mp3'] = f"{config['mix_path']}/{mix_name_mp3}"
 
-        mix_name_mp3 = mixed_song['name_mp3']
         file_path_mp3 = mixed_song['path_mp3']
         with open(file_path_mp3, 'rb') as mp3_f:
-            grid_in = fs.open_upload_stream(mix_name_mp3)
+            grid_in = fs.open_upload_stream(mixed_song['name_mp3'])
             await grid_in.write(mp3_f.read())
             await grid_in.close()
-        update_data = {
+        update_data_mp3 = {
             "progress": 100,
-            "title_mp3": mix_name_mp3
+            "title_mp3": mixed_song['name_mp3']
         }
         mix_update4 = await mix_db.update_one(
             {"_id": ObjectId(mix_id)},
-            {"$set": update_data}
+            {"$set": update_data_mp3}
         )
         if not mix_update4:
             logger.info("mix update #4 failed")

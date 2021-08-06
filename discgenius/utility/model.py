@@ -106,7 +106,9 @@ def mix_helper(mix) -> dict:
     if 'scenarios' in mix:
         mix_data['scenarios'] = list(mix['scenarios'])
     if 'transition_points' in mix:
-        mix_data['transition_points'] = dict(mix['transition_points'])
+        mix_data['transition_points'] = [item for sublist in list(mix['transition_points']) for item in sublist]
+    if 'song_list' in mix:
+        mix_data['song_list'] = list(mix['song_list'])
     return mix_data
 
 
