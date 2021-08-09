@@ -236,6 +236,14 @@ async def mix_two_files(param):
         mix_name_wav = mixed_song['name']
         file_path_wav = mixed_song['path']
         length = util.get_mix_length(file_path_wav)
+        new_transition_points = [transition_points['c'], transition_points['d'], transition_points['e']]
+        # if len(tps_a) > 0:
+        #     new_transition_points = [x+max(tps_a) for x in new_transition_points]
+        _transition_points = []
+        _transition_points.extend(tps_a)
+        _transition_points.extend(new_transition_points)
+        if len(tps_b) > 0:
+            _transition_points.extend([x+max(new_transition_points) for x in tps_b])
 
         with open(file_path_wav, 'rb') as wav_f:
             grid_in = fs.open_upload_stream(mix_name_wav)
@@ -245,7 +253,7 @@ async def mix_two_files(param):
             "title": mix_name_wav,
             "length": length,
             "progress": 80,
-            "transition_points": [tps_a, [transition_points['c'], transition_points['d'], transition_points['e']], tps_b]
+            "transition_points": _transition_points
         }
         mix_update3 = await mix_db.update_one(
             {"_id": ObjectId(mix_id)},

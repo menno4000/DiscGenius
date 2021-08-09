@@ -103,10 +103,10 @@ def mix_helper(mix) -> dict:
         mix_data['length'] = str(mix['length'])
     if 'title_mp3' in mix:
         mix_data['title_mp3'] = str(mix['title'])
-    if 'scenarios' in mix:
-        mix_data['scenarios'] = list(mix['scenarios'])
+    if 'scenario_list' in mix:
+        mix_data['scenario_list'] = list(mix['scenario_list'])
     if 'transition_points' in mix:
-        mix_data['transition_points'] = [item for sublist in list(mix['transition_points']) for item in sublist]
+        mix_data['transition_points'] = list(mix['transition_points'])
     if 'song_list' in mix:
         mix_data['song_list'] = list(mix['song_list'])
     return mix_data

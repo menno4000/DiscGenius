@@ -268,9 +268,11 @@ def save_song_analysis_data(config, song, transition_points, tsl_list):
     identifier = f"{tsl_list[0]}-{tsl_list[1]}_{clip_size}"
     data_path = f"{config['song_analysis_path']}/{song['name']}_{song['bpm']}.json"
 
+    song_data = {}
     # TODO something is going on buggy here when working with mixes.
-    with open(data_path, mode='r', encoding='utf-8') as fp:
-        song_data = json.load(fp)
+    if os.path.isfile(data_path):
+        with open(data_path, mode='r', encoding='utf-8') as fp:
+            song_data = json.load(fp)
 
     if 'transition_points' in song_data:
         current_settings = {}

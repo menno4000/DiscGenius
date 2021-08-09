@@ -59,7 +59,7 @@ def find_best_segments(config, song, tsl_list, bias_mode, entry_point):
     #logger.info(f"segment scores: length of 1: {len(segment_scores_a)}, 2: {len(segment_scores_b)}")
 
     # determine best transition candidates
-    best_segment_index = segment_scores.tolist().index(min(segment_scores))
+    best_segment_index = segment_scores.tolist().index(min(segment_scores))*config['step_size']
 
     #logger.info(f"Selected indexes for songs A: {best_segment_index_a}, B: {best_segment_index_b}")
     #logger.info(segment_times1)#

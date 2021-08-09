@@ -32,8 +32,22 @@ services:
       - "DG_MIX_DB_NAME"
     depends_on:
       - mongodb
+    command: gunicorn discgenius.api:app --bind 0.0.0.0:5000 -w 2 -k uvicorn.workers.UvicornWorker
+    expose:
+      - 5000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fastapi.rule=Host(`subdomain.example.com`)"
+      - "traefik.http.routers.fastapi.tls=true"
+      - "traefik.http.routers.fastapi.tls.certresolver=letsencrypt"
+  traefik:
+    image: traefik:v2.2
     ports:
-      - "9001:9001"
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/services/traefik/traefik.dev.toml:/etc/traefik/traefik.toml"
 volumes:
   db-volume: {}
   configdb-volume: {}

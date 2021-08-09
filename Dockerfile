@@ -5,6 +5,11 @@ RUN apt-get update && apt-get install -y python3-dev gcc libc-dev
 
 RUN apt-get install -y ffmpeg
 
+ENV USER=app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+
+RUN adduser --system --group $USER
+
 RUN mkdir app
 ADD ./discgenius ./app/discgenius
 # ADD required filees
@@ -27,13 +32,16 @@ RUN mkdir ./app/audio/data/song_analysis
 RUN mkdir export PYTHONPATH=${PYTHONPATH:-.}
 
 WORKDIR /app
-RUN pip install --no-cache-dir .
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
 #RUN cd /tmp/discgenius \
 #    && pip3 install --no-cache-dir .
 
 # RUN rm -r /tmp/discgenius
 
-EXPOSE 9001
+RUN chown -R $USER:$USER /home/app
 
-ENTRYPOINT uvicorn discgenius.api:app --port 9001
+EXPOSE 5000
+
+USER $USER

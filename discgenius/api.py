@@ -269,7 +269,7 @@ async def upload_song(request: Request,
             await grid_in.write(f.read())
             await grid_in.close()
 
-    logger(f"saving song object to song db")
+    logger.info(f"saving song object to song db")
     song_data = {
         "title": str(_filename),
         "length": str(song_length),
@@ -428,18 +428,23 @@ async def mix(request: Request,
                                                  transition_midpoint)
 
     song_list = []
+    scenario_list = []
     if num_songs_a > 1:
         song_list.extend(_song_a['song_list'])
+        scenario_list.extend(_song_a['scenario_list'])
         transition_points_a = _song_a['transition_points']
     else:
         song_list.append(song_a_name.split('_')[0])
         transition_points_a = []
+    scenario_list.append(scenario_name)
     if num_songs_b > 1:
         song_list.extend(_song_b['song_list'])
+        scenario_list.extend(_song_b['scenario_list'])
         transition_points_b = _song_b['transition_points']
     else:
         song_list.append(song_b_name.split('_')[0])
         transition_points_b = []
+
 
     logger.debug("saving initial mix object to mix db")
     mix_id = await mix_db.insert_one({
@@ -450,6 +455,7 @@ async def mix(request: Request,
         "transition_midpoint": int(transition_midpoint),
         "user_id": str(user_id),
         "song_list": song_list,
+        "scenario_list": scenario_list,
         "progress": int(10)
     })
 
@@ -479,7 +485,7 @@ async def mix(request: Request,
         'mix_db': mix_db,
         'fs': fs,
         'tps_a': transition_points_a,
-        'tps_b': transition_points_b
+        'tps_b': transition_points_b,
     }
 
     background_tasks.add_task(controller.mix_two_files, param)
@@ -523,6 +529,19 @@ async def adjust_tempo(song_name: str = Body(default=""),
         "filename": new_song_name,
         "info": f"A copy of the original song was created in a new tempo ({desired_bpm}). Please refer to this name, when calling '/createMix'"
     }
+
+
+@app.get("/getMixObject/{mix_id}")
+async def get_mix_object(mix_id: str = ""):
+    if mix_id == "":
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+    mix_object = ""
+    cursor = mix_db.find({"_id": ObjectId(mix_id)})
+    async for m in cursor:
+        mix_object = mix_helper(m)
+
+    if mix_object:
+        return response_model(mix_object, f"retrieved mix of id {mix_id}.")
 
 
 @app.get("/getMix")
