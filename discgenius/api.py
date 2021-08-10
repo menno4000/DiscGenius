@@ -8,6 +8,7 @@ import uvicorn
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, Body, BackgroundTasks, WebSocket, WebSocketDisconnect, Response, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import JWTAuthentication
 from fastapi_users.db import MongoDBUserDatabase
@@ -86,6 +87,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/resources", StaticFiles(directory="resources"), name="resources")
 
 user_db: MongoDBUserDatabase = None
 track_client: AsyncIOMotorClient = None
