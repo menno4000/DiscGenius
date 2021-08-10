@@ -294,6 +294,7 @@ async def mix_two_files(param):
                                                               scenario_data, tsl_list, new_num_songs, desired_bpm)
         # TODO remove tempo changed songs
         # TODO remove local mix files
+        os.remove(file_path_mp3)
         os.remove(song_a_path)
         os.remove(song_b_path)
 

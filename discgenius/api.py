@@ -597,6 +597,42 @@ async def get_mix_bytes(background_tasks: BackgroundTasks, request: Request, nam
         return error_response_model("Not Found", "404", "Mix not found")
 
 
+@app.get("/mixPreview/{preview_name}")
+def get_preview_media(request: Request, preview_name: str = ''):
+
+    if preview_name == "":
+        raise HTTPException(status_code=400, detail="Please provide a scenario.")
+    filepath = ""
+    p_name = '.'.join(preview_name.split('.')[:-1])
+    if p_name == "EQ_1.0":
+        filepath = 'preview_EQ_1.0.mp3'
+    elif p_name == "EQ_1.1":
+        filepath = 'preview_EQ_1.0.mp3'
+    elif p_name == "VFF_1.0":
+        filepath = 'preview_VFF_1.0.mp3'
+    elif p_name == "VFF_1.1":
+        filepath = 'preview_VFF_1.1.mp3'
+    byte_range = request.headers['Range']
+    start, end = byte_range.replace("bytes=", "").split("-")
+    start = int(start)
+    end = int(end) if end else start + CHUNK_SIZE
+
+    if filepath != "":
+        logger.info(f'dispatching file {filepath}')
+        audio_path = Path('./resources', filepath)
+        with open(audio_path, mode="rb") as audio:
+            audio.seek(start)
+            data = audio.read(end - start)
+            filesize = str(audio_path.stat().st_size)
+            headers = {
+                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
+                'Accept-Ranges': 'bytes'
+            }
+            return Response(data, status_code=206, media_type="audio/mpeg", headers=headers)
+    else:
+        raise HTTPException(status_code=400, detail="Scenario name not recognized.")
+
+
 @app.get("/getMixMedia/{name}")
 async def get_mix_media(background_tasks: BackgroundTasks, name: str = ""):
     if name == "":
