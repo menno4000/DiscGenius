@@ -52,6 +52,7 @@ DATABASE_NAME = config['db_name']
 USER_DB = config['user_col']
 SONGS_DB = config['tracks_col']
 MIX_DB = config['mixes_col']
+PREVIEWS = config['previews']
 manager = ConnectionManager()
 CHUNK_SIZE = 1024*1024
 
@@ -125,7 +126,7 @@ async def download_file(file_id):
 
 
 async def clean_up_file(file_id):
-    await asyncio.sleep(60000)
+    await asyncio.sleep(300)
     os.remove(file_id)
 
 
@@ -185,6 +186,23 @@ async def startup():
         fastapi_users.get_users_router(),
         prefix="/users",
         tags=["users"])
+
+    # check for previews in db
+    preview_names = [(preview + '.mp3') for preview in PREVIEWS]
+    for scenario, prev_name in zip(PREVIEWS, preview_names):
+        prev_db_obj = fs.find({"filename": str(prev_name)})
+        song_data = b""
+        async for grid_data in prev_db_obj:
+            song_data = grid_data.read()
+        if not song_data:
+            # write non existent previews to db
+            logger.info(f"preview for scenario {scenario} not found, writing to db.")
+            prev_path = './resources/preview_' + prev_name
+            with open(prev_path, 'rb') as f:
+                grid_in = fs.open_upload_stream(prev_name)
+                await grid_in.write(f.read())
+                await grid_in.close()
+            logger.debug(f"preview file {prev_name} written to db grid fs.")
 
 
 @app.on_event("shutdown")
@@ -570,7 +588,7 @@ async def get_mix(background_tasks: BackgroundTasks, name: str = ""):
 @app.get("/getMixBytes/{name}")
 async def get_mix_bytes(background_tasks: BackgroundTasks, request: Request, name: str = ""):
     if name == "":
-        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+        raise HTTPException(status_code=400, detail="Please provide the preview name url parameter .")
     file = await download_file(name)
     if file:
         byte_range = request.headers['Range']
@@ -595,35 +613,25 @@ async def get_mix_bytes(background_tasks: BackgroundTasks, request: Request, nam
             }
             response = Response(data, status_code=206, media_type=content_type, headers=headers)
             background_tasks.add_task(clean_up_file, file)
+            # os.remove(file)
             return response
     else:
         return error_response_model("Not Found", "404", "Mix not found")
 
 
 @app.get("/mixPreview/{preview_name}")
-def get_preview_media(request: Request, preview_name: str = ''):
+async def get_preview_media(request: Request, background_tasks: BackgroundTasks, preview_name: str = ''):
 
     if preview_name == "":
-        raise HTTPException(status_code=400, detail="Please provide a scenario.")
-    filepath = ""
-    p_name = '.'.join(preview_name.split('.')[:-1])
-    if p_name == "EQ_1.0":
-        filepath = 'preview_EQ_1.0.mp3'
-    elif p_name == "EQ_1.1":
-        filepath = 'preview_EQ_1.0.mp3'
-    elif p_name == "VFF_1.0":
-        filepath = 'preview_VFF_1.0.mp3'
-    elif p_name == "VFF_1.1":
-        filepath = 'preview_VFF_1.1.mp3'
-    byte_range = request.headers['Range']
-    start, end = byte_range.replace("bytes=", "").split("-")
-    start = int(start)
-    end = int(end) if end else start + CHUNK_SIZE
-
-    if filepath != "":
-        logger.info(f'dispatching file {filepath}')
-        audio_path = Path('./resources', filepath)
-        with open(audio_path, mode="rb") as audio:
+        raise HTTPException(status_code=400, detail="Please provide the query param: 'name_of_mix'.")
+    file = await download_file(preview_name)
+    if file:
+        byte_range = request.headers['Range']
+        start, end = byte_range.replace("bytes=", "").split("-")
+        start = int(start)
+        end = int(end) if end else start + CHUNK_SIZE
+        audio_path = Path(preview_name)
+        with open(audio_path, "rb") as audio:
             audio.seek(start)
             data = audio.read(end - start)
             filesize = str(audio_path.stat().st_size)
@@ -631,7 +639,10 @@ def get_preview_media(request: Request, preview_name: str = ''):
                 'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
                 'Accept-Ranges': 'bytes'
             }
-            return Response(data, status_code=206, media_type="audio/mpeg", headers=headers)
+            response = Response(data, status_code=206, media_type='audio/mpeg', headers=headers)
+            background_tasks.add_task(clean_up_file, file)
+            # os.remove(file)
+            return response
     else:
         raise HTTPException(status_code=400, detail="Scenario name not recognized.")
 
@@ -707,6 +718,7 @@ async def get_song_bytes(background_tasks: BackgroundTasks, request: Request, na
             }
             response = Response(data, status_code=206, media_type=content_type, headers=headers)
             background_tasks.add_task(clean_up_file, file)
+            # os.remove(file)
             return response
     else:
         return error_response_model("Not Found", "404", "Song not found")
