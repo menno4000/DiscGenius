@@ -11,4 +11,4 @@ export PYTHONPATH=${PYTHONPATH:-.}
 echo "PYTHONPATH set to ${PYTHONPATH}"
 
 pip install -r requirements.txt
-uvicorn discgenius.api:app --reload --port 9001
+gunicorn -k uvicorn.workers.UvicornWorker --workers=2 -t 6000 discgenius.api:app --bind=127.0.0.1:9001

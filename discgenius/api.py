@@ -55,6 +55,7 @@ MIX_DB = config['mixes_col']
 PREVIEWS = config['previews']
 manager = ConnectionManager()
 CHUNK_SIZE = 1024*1024
+CHUNK_SIZE_2 = 1024*512
 
 
 def on_after_register(user: UserDB, request: Request):
@@ -188,7 +189,7 @@ async def startup():
         tags=["users"])
 
     # check for previews in db
-    preview_names = [(preview + '.mp3') for preview in PREVIEWS]
+    preview_names = [(preview.replace('.', '') + '.mp3') for preview in PREVIEWS]
     for scenario, prev_name in zip(PREVIEWS, preview_names):
         prev_db_obj = fs.find({"filename": str(prev_name)})
         song_data = b""
@@ -629,17 +630,17 @@ async def get_preview_media(request: Request, background_tasks: BackgroundTasks,
         byte_range = request.headers['Range']
         start, end = byte_range.replace("bytes=", "").split("-")
         start = int(start)
-        end = int(end) if end else start + CHUNK_SIZE
+        end = int(end) if end else start + CHUNK_SIZE_2
         audio_path = Path(preview_name)
         with open(audio_path, "rb") as audio:
             audio.seek(start)
-            data = audio.read(end - start)
             filesize = str(audio_path.stat().st_size)
+            data = audio.read(int(filesize) - start)
             headers = {
-                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
+                'Content-Range': f'bytes {str(start)}-{str(filesize)}/{filesize}',
                 'Accept-Ranges': 'bytes'
             }
-            response = Response(data, status_code=206, media_type='audio/mpeg', headers=headers)
+            response = Response(data, status_code=200, media_type='audio/mpeg', headers=headers)
             background_tasks.add_task(clean_up_file, file)
             # os.remove(file)
             return response
