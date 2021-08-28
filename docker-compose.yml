@@ -23,6 +23,7 @@ services:
       dockerfile: Dockerfile
     networks:
       - internal
+      - traefik-public
     container_name: "discgenius-api"
     environment:
       - "DG_DB_USERNAME"
@@ -37,21 +38,16 @@ services:
       - 5000
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.fastapi.rule=Host(`discgenius.fb4.htw-berlin.de`)"
-      - "traefik.http.routers.fastapi.tls=true"
-      - "traefik.http.routers.fastapi.tls.certresolver=letsencrypt"
-  traefik:
-    image: traefik:v2.2
-    networks:
-      - internal
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./services/traefik/traefik.dev.toml:/etc/traefik/traefik.toml"
+      - "traefik.http.routers.app-https.entrypoints=https"
+      - "traefik.http.routers.app-http.rule=Host(`discgenius.fb4.htw-berlin.de`)"
+      - "traefik.http.routers.app-http.tls=true"
+      - "traefik.http.routers.app-http.tls.certresolver=letsencrypt"
+
+
 volumes:
   db-volume: {}
   configdb-volume: {}
 networks:
+  traefik-public:
+    external: true
   internal: { }

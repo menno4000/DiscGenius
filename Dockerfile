@@ -17,6 +17,7 @@ ADD ./scenarios ./app/scenarios
 ADD requirements.txt ./app/requirements.txt
 ADD setup.py ./app/setup.py
 ADD content.ini ./app/content.ini
+ADD gunicorn.conf.py ./app/gunicorn.conf.py
 
 #ADD run_api.sh ./app/run_api.sh
 
