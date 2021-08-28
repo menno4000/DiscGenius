@@ -42,9 +42,9 @@ services:
       - traefik.http.routers.app-http.entrypoints=http
       - traefik.http.routers.app-http.rule=Host(`discgenius.fb.htw-berlin.de`)
       - traefik.http.routers.app-https.entrypoints=https
-      - traefik.http.routers.app-http.rule=Host(`discgenius.fb.htw-berlin.de`)
-      - traefik.http.routers.app-http.tls=true
-      - traefik.http.routers.app-http.tls.certresolver=le
+      - traefik.http.routers.app-https.rule=Host(`discgenius.fb.htw-berlin.de`)
+      - traefik.http.routers.app-https.tls=true
+      - traefik.http.routers.app-https.tls.certresolver=le
 
 
 volumes:
