@@ -44,10 +44,10 @@ services:
     image: traefik:v2.2
     ports:
       - "80:80"
-      - "8080:8080"
+      - "443:443"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "/services/traefik/traefik.dev.toml:/etc/traefik/traefik.toml"
+      - "./services/traefik/traefik.dev.toml:/etc/traefik/traefik.toml"
 volumes:
   db-volume: {}
   configdb-volume: {}
