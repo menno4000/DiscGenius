@@ -32,7 +32,7 @@ services:
       - "DG_MIX_DB_NAME"
     depends_on:
       - mongodb
-    command: gunicorn discgenius.api:app --bind 0.0.0.0:5000 -w 2 -k uvicorn.workers.UvicornWorker
+    command: gunicorn discgenius.api:app --bind 0.0.0.0:5000 -w 2 -k uvicorn.workers.UvicornWorker -t 6000
     expose:
       - 5000
     labels:

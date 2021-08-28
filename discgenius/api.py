@@ -608,8 +608,12 @@ async def get_mix_bytes(background_tasks: BackgroundTasks, request: Request, nam
             audio.seek(start)
             data = audio.read(end - start)
             filesize = str(audio_path.stat().st_size)
+            if end > filesize:
+                content_range = f'bytes {str(start)}-{str(filesize-1)}/{filesize}'
+            else:
+                content_range = f'bytes {str(start)}-{str(end)}/{filesize}'
             headers = {
-                'Content-Range': f'bytes {str(start)}-{str(end)}/{filesize}',
+                'Content-Range': content_range,
                 'Accept-Ranges': 'bytes'
             }
             response = Response(data, status_code=206, media_type=content_type, headers=headers)
