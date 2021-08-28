@@ -32,12 +32,12 @@ services:
       - "DG_MIX_DB_NAME"
     depends_on:
       - mongodb
-    command: gunicorn discgenius.api:app --bind 0.0.0.0:5000 -w 2 -k uvicorn.workers.UvicornWorker -t 6000
+    command: gunicorn discgenius.api:app --bind 0.0.0.0:5000 -w 4 -k uvicorn.workers.UvicornWorker -t 6000
     expose:
       - 5000
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.fastapi.rule=Host(`subdomain.example.com`)"
+      - "traefik.http.routers.fastapi.rule=Host(`discgenius.fb4.htw-berlin.de`)"
       - "traefik.http.routers.fastapi.tls=true"
       - "traefik.http.routers.fastapi.tls.certresolver=letsencrypt"
   traefik:
