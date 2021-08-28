@@ -38,10 +38,13 @@ services:
       - 5000
     labels:
       - "traefik.enable=true"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+      - "traefik.http.routers.app-http.entrypoints=http"
+      - "traefik.http.routers.app-http.rule=Host(`discgenius.fb4.htw-berlin.de`)"
       - "traefik.http.routers.app-https.entrypoints=https"
       - "traefik.http.routers.app-http.rule=Host(`discgenius.fb4.htw-berlin.de`)"
       - "traefik.http.routers.app-http.tls=true"
-      - "traefik.http.routers.app-http.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app-http.tls.certresolver=le"
 
 
 volumes:

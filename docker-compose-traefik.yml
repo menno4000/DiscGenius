@@ -6,8 +6,10 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    restart: always
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
       # https-redirect middleware to redirect HTTP to HTTPS
       - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
