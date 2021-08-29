@@ -607,7 +607,7 @@ async def get_mix_bytes(background_tasks: BackgroundTasks, request: Request, nam
         with open(audio_path, "rb") as audio:
             audio.seek(start)
             data = audio.read(end - start)
-            filesize = str(audio_path.stat().st_size)
+            filesize = audio_path.stat().st_size
             if end > filesize:
                 content_range = f'bytes {str(start)}-{str(filesize-1)}/{filesize}'
             else:
