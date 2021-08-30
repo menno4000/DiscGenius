@@ -1,6 +1,6 @@
 import multiprocessing
 
-bind = "127.0.0.1:9001"
+bind = "0.0.0.0:443"
 worker_class = "uvicorn.workers.UvicornWorker"
 worker_connections = 100
 workers = 4
