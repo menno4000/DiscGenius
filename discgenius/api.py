@@ -80,7 +80,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:8080",
-    "http://menno4000.github.io/discgenius-app"
+    "https://menno4000.github.io"
 ]
 app.add_middleware(
     CORSMiddleware,
