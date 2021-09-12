@@ -5,6 +5,9 @@ worker_class = "uvicorn.workers.UvicornWorker"
 worker_connections = 100
 workers = 4
 timeout = 6000
+daemon = False
+accesslog = '-'
+errorlog = '-'
 
 keyfile = "privkey.pem"
 certfile = "cert.pem"

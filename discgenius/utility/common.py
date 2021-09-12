@@ -97,6 +97,7 @@ def get_config(content_path):
         'mix_path': get_string_parameter(parser, "PATHS", 'mix_path'),
         'scenario_path': get_string_parameter(parser, "PATHS", 'scenario_path'),
         'ffmpeg_path': get_string_parameter(parser, "PATHS", 'ffmpeg_path'),
+        'lame_path': get_string_parameter(parser, "PATHS", 'lame_path'),
         'info_text_path': get_string_parameter(parser, "PATHS", 'info_text_path'),
 
         'audio_formats': get_list_parameter(parser, "LISTS", 'audio_formats'),
